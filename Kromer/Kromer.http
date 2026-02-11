@@ -1,0 +1,6 @@
+@Kromer_HostAddress = http://localhost:5241
+
+GET {{Kromer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

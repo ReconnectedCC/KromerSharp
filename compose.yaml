@@ -1,0 +1,7 @@
+﻿services:
+  kromer:
+    image: kromer
+    build:
+      context: .
+      dockerfile: Kromer/Dockerfile
+
