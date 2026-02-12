@@ -1,4 +1,4 @@
-﻿namespace Kromer.Models.Dto;
+﻿namespace Kromer.Models.Entities;
 
 public partial class NameEntity
 {

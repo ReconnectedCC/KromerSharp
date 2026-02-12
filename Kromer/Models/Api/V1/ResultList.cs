@@ -1,4 +1,4 @@
-﻿namespace Kromer.Models.Api;
+﻿namespace Kromer.Models.Api.V1;
 
 public class ResultList<T> : Result<IEnumerable<T>>
 {

@@ -1,4 +1,5 @@
 ﻿using Kromer.Models.Dto;
+using Kromer.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Data;
@@ -108,6 +109,9 @@ public partial class KromerContext : DbContext
                 .HasMaxLength(10)
                 .IsFixedLength()
                 .HasColumnName("to");
+            entity.Property(e => e.TransactionType)
+                .HasColumnName("transaction_type")
+                .HasColumnType("public.transaction_type");
         });
 
         modelBuilder.Entity<WalletEntity>(entity =>

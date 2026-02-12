@@ -1,4 +1,6 @@
-﻿namespace Kromer.Models.Dto;
+﻿using Kromer.Models.Entities;
+
+namespace Kromer.Models.Dto;
 
 public class WalletDto
 {

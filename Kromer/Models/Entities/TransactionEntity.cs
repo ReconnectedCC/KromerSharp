@@ -1,4 +1,6 @@
-﻿namespace Kromer.Models.Dto;
+﻿using Kromer.Models.Dto;
+
+namespace Kromer.Models.Entities;
 
 public partial class TransactionEntity
 {
@@ -19,4 +21,6 @@ public partial class TransactionEntity
     public string? SentMetaname { get; set; }
 
     public string? SentName { get; set; }
+    
+    public TransactionType TransactionType { get; set; }
 }
