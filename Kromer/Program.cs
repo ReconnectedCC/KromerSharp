@@ -52,7 +52,7 @@ app.UseExceptionHandler(builder =>
     builder.Run(async context =>
     {
         var exception = context.Features
-            .Get<ExceptionHandlerFeature>()?
+            .Get<IExceptionHandlerFeature>()?
             .Error;
 
         if (exception is KristException kristException)
@@ -70,12 +70,12 @@ app.UseExceptionHandler(builder =>
 
             context.Response.StatusCode = (int)kristException.GetStatusCode();
             context.Response.ContentType = "application/json";
-            
+
             await context.Response.WriteAsJsonAsync(error);
 
             return;
         }
-        
+
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/json";
 
