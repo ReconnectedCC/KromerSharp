@@ -6,10 +6,16 @@ namespace Kromer;
 public class SnakeCaseNamingPolicy : JsonNamingPolicy
 {
     // ¯\_(ツ)_/¯
-    private readonly SnakeCaseNamingStrategy _snakeCaseNamingStrategy = new();
+    private static readonly SnakeCaseNamingStrategy SnakeCaseNamingStrategy = new();
+
+    public static string Convert(string name)
+    {
+        return SnakeCaseNamingStrategy.GetPropertyName(name, false);
+    }
     
     public override string ConvertName(string name)
     {
-        return _snakeCaseNamingStrategy.GetPropertyName(name,  false);
+        return Convert(name);
     }
+
 }

@@ -1,0 +1,36 @@
+﻿using Kromer.Models.Api.Krist;
+using Kromer.Models.Api.Krist.Misc;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Kromer.Repositories;
+
+public class MiscRepository(IConfiguration configuration)
+{
+    public string GetPublicUrl()
+    {
+        return configuration.GetValue<string>("PublicUrl") ?? string.Empty;
+    }
+    
+    public string GetPublicWsUrl()
+    {
+        return configuration.GetValue<string>("PublicWsUrl") ?? string.Empty;
+    }
+
+    public KristMotdResponse GetMotd()
+    {
+        return new KristMotdResponse
+        {
+            Motd = "die or smth",
+            Set = DateTime.UtcNow,
+            MotdSet = DateTime.UtcNow,
+            PublicUrl = GetPublicUrl(),
+            PublicWsUrl = GetPublicWsUrl(),
+
+        };
+    }
+
+    public int GetWalletVersion()
+    {
+        return 14;
+    }
+}

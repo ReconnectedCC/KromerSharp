@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.2" />
@@ -33,7 +34,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Controllers\Krist\" />
       <Folder Include="Extensions\" />
     </ItemGroup>
 

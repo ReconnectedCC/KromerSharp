@@ -1,8 +1,12 @@
 using System.Text.Json.Serialization;
 using Kromer;
 using Kromer.Data;
+using Kromer.Models.Api.Krist;
 using Kromer.Models.Dto;
+using Kromer.Models.Entities;
+using Kromer.Models.Exceptions;
 using Kromer.Repositories;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +20,7 @@ builder.Services.AddDbContext<KromerContext>(options =>
 builder.Services.AddScoped<WalletRepository>();
 builder.Services.AddScoped<TransactionRepository>();
 builder.Services.AddScoped<NameRepository>();
+builder.Services.AddScoped<MiscRepository>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -41,5 +46,45 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseExceptionHandler(builder =>
+{
+    builder.Run(async context =>
+    {
+        var exception = context.Features
+            .Get<ExceptionHandlerFeature>()?
+            .Error;
+
+        if (exception is KristException kristException)
+        {
+            var error = new KristResult
+            {
+                Ok = false,
+                Error = kristException.Error,
+            };
+
+            if (exception is KristParameterException parameterException)
+            {
+                error.Parameter = parameterException.Parameter;
+            }
+
+            context.Response.StatusCode = (int)kristException.GetStatusCode();
+            context.Response.ContentType = "application/json";
+            
+            await context.Response.WriteAsJsonAsync(error);
+
+            return;
+        }
+        
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        await context.Response.WriteAsJsonAsync(new KristResult
+        {
+            Ok = false,
+            Error = "internal_server_error",
+        });
+    });
+});
 
 app.Run();

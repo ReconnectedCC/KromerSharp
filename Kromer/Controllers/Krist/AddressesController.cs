@@ -1,4 +1,9 @@
+using Kromer.Models.Api;
 using Kromer.Models.Api.Krist;
+using Kromer.Models.Api.Krist.Address;
+using Kromer.Models.Api.Krist.Name;
+using Kromer.Models.Api.Krist.Transaction;
+using Kromer.Models.Exceptions;
 using Kromer.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -36,11 +41,7 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
 
         if (addressDto is null)
         {
-            return new KristResultAddress
-            {
-                Ok = false,
-                Error = "blabla", // TODO: give actual error
-            };
+            throw new KristException(ErrorCode.AddressNotFound);
         }
 
         return new KristResultAddress()
@@ -77,18 +78,14 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
     {
         limit = Math.Clamp(limit, 1, 1000);
 
+        if (!await walletRepository.ExistsAsync(address))
+        {
+            throw new KristException(ErrorCode.AddressNotFound);
+        }
+        
         var total = await transactionRepository.CountAddressTransactionsAsync(address, excludeMined);
         var transactions =
             await transactionRepository.GetAddressRecentTransactionsAsync(address, limit, offset, excludeMined);
-
-        if (transactions.Count == 0)
-        {
-            return new KristResultTransactions
-            {
-                Ok = false,
-                Error = "blabla", // TODO: give actual error
-            };
-        }
 
         var list = new KristResultTransactions
         {
@@ -104,13 +101,9 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
     [HttpGet("{address}/names")]
     public async Task<ActionResult<KristResultNames>> Names(string address, [FromQuery] int limit = 50, [FromQuery] int offset = 0)
     {
-        if (!await walletRepository.Exists(address))
+        if (!await walletRepository.ExistsAsync(address))
         {
-            return new KristResultNames
-            {
-                Ok = false,
-                Error = "blabla", // TODO: give actual error
-            };
+            throw new KristException(ErrorCode.AddressNotFound);
         }
         
         limit = Math.Clamp(limit, 1, 1000);
