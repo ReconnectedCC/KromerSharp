@@ -15,7 +15,7 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
     : ControllerBase
 {
     [HttpGet("")]
-    public async Task<ActionResult<KristResultAddresses>> Addresses([FromQuery] int limit = 50,
+    public async Task<ActionResult<KristResultAddresses>> GetAddresses([FromQuery] int limit = 50,
         [FromQuery] int offset = 0)
     {
         limit = Math.Clamp(limit, 1, 1000);

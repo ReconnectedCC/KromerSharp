@@ -33,4 +33,12 @@ public enum ErrorCode
     [Description("Invalid amount number")]
     [StatusCode(HttpStatusCode.Forbidden)]
     InvalidAmount,
+    
+    [Description("Transaction not found")]
+    [StatusCode(HttpStatusCode.Forbidden)]
+    TransactionNotFound,
+    
+    [Description("Authentication failed")]
+    [StatusCode(HttpStatusCode.Unauthorized)]
+    AuthenticationFailed,
 }

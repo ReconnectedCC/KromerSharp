@@ -18,9 +18,6 @@ public partial class NameRepository(
     TransactionRepository transactionRepository,
     ILogger<NameRepository> logger)
 {
-    [GeneratedRegex("^[a-z0-9]{1,64}$")]
-    private static partial Regex NameRegex();
-
     public async Task<IList<NameDto>> GetAddressNamesAsync(string address, int limit = 50, int offset = 0)
     {
         var names = await context.Names
@@ -91,7 +88,7 @@ public partial class NameRepository(
 
     public async Task<NameEntity> RegisterNameAsync(string privateKey, string name)
     {
-        if (!IsNameValid(name))
+        if (!Validation.IsNameValid(name))
         {
             throw new KristParameterException("name");
         }
@@ -113,7 +110,7 @@ public partial class NameRepository(
             throw new KristException(ErrorCode.InsufficientFunds);
         }
 
-        name = SanitizeName(name);
+        name = Validation.SanitizeName(name);
 
 
         var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, TransactionRepository.ServerWallet,
@@ -135,19 +132,9 @@ public partial class NameRepository(
         return nameEntity;
     }
 
-    public bool IsNameValid(string name)
-    {
-        return NameRegex().IsMatch(name.ToLowerInvariant());
-    }
-
-    public string SanitizeName(string name)
-    {
-        return name.Trim().ToLowerInvariant();
-    }
-
     public async Task<NameDto> TransferNameAsync(string privateKey, string name, string address)
     {
-        if (!IsNameValid(name))
+        if (!Validation.IsNameValid(name))
         {
             throw new KristParameterException("name");
         }
@@ -195,7 +182,7 @@ public partial class NameRepository(
 
     public async Task<NameDto> UpdateNameAsync(string privateKey, string name, string? metadata)
     {
-        if (!IsNameValid(name))
+        if (!Validation.IsNameValid(name))
         {
             throw new KristParameterException("name");
         }

@@ -1,16 +1,25 @@
-﻿using Kromer.Data;
+﻿using System.Text.RegularExpressions;
+using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Utils;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Kromer.Repositories;
 
-public class TransactionRepository(KromerContext context, ILogger<TransactionRepository> logger)
+public partial class TransactionRepository(
+    KromerContext context,
+    ILogger<TransactionRepository> logger,
+    WalletRepository walletRepository,
+    NameRepository nameRepository)
 {
     public const string ServerWallet = "serverwelf";
-    
+
+    [GeneratedRegex(@"^(?:([a-z0-9-_]{1,32})@)?([a-z0-9]{1,64})\.kro", RegexOptions.Compiled)]
+    public static partial Regex KroNameRegex();
+
     private IQueryable<TransactionEntity> PrepareAddressTransactions(string address, bool excludeMined = false)
     {
         var query = context.Transactions
@@ -85,6 +94,8 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
             throw new KristException(ErrorCode.InvalidAmount);
         }
 
+        transaction.Amount = Math.Round(transaction.Amount, 2, MidpointRounding.ToZero);
+
         if (string.IsNullOrWhiteSpace(transaction.From))
         {
             transaction.From = ServerWallet;
@@ -94,20 +105,22 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
         {
             transaction.To = ServerWallet;
         }
-        
-        var senderWallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.From));
-        
-        var recipientWallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.To));
+
+        var senderWallet =
+            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.From));
+
+        var recipientWallet =
+            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.To));
 
         if (senderWallet is null || recipientWallet is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
-        
+
         // Sanitize names?
         transaction.From = senderWallet.Address;
         transaction.To = recipientWallet.Address;
-        
+
         // Apply balance updates
         senderWallet.Balance -= transaction.Amount;
         recipientWallet.Balance += transaction.Amount;
@@ -121,5 +134,127 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
             transaction.Metadata);
 
         return transaction;
+    }
+
+    private IQueryable<TransactionEntity> PrepareTransactionList(bool excludeMined)
+    {
+        var query = context.Transactions.AsQueryable();
+        if (excludeMined)
+        {
+            query = query.Where(q => q.TransactionType != TransactionType.Mined);
+        }
+
+        return query;
+    }
+
+    public async Task<int> CountTransactionsAsync(bool excludeMined = false)
+    {
+        return await PrepareTransactionList(excludeMined).CountAsync();
+    }
+
+    public async Task<IList<TransactionDto>> GetPaginatedTransactionsAsync(int offset = 0, int limit = 50,
+        bool excludeMined = false)
+    {
+        var query = PrepareTransactionList(excludeMined);
+
+        query = query
+            .OrderBy(q => q.Id)
+            .Skip(offset)
+            .Take(limit);
+
+        var transactions = await query.ToListAsync();
+
+        return transactions.Select(TransactionDto.FromEntity).ToList();
+    }
+
+    public async Task<IList<TransactionDto>> GetPaginatedLatestTransactionsAsync(int offset = 0, int limit = 50,
+        bool excludeMined = false)
+    {
+        var query = PrepareTransactionList(excludeMined);
+
+        query = query
+            .OrderByDescending(q => q.Id)
+            .Skip(offset)
+            .Take(limit);
+
+        var transactions = await query.ToListAsync();
+
+        return transactions.Select(TransactionDto.FromEntity).ToList();
+    }
+
+    public async Task<TransactionDto> GetTransaction(int id)
+    {
+        var transaction = await context.Transactions.FirstOrDefaultAsync(q => q.Id == id);
+
+        if (transaction is null)
+        {
+            throw new KristException(ErrorCode.TransactionNotFound);
+        }
+
+        return TransactionDto.FromEntity(transaction);
+    }
+
+    public async Task<TransactionDto> RequestCreateTransaction(string privateKey, string to, decimal amount,
+        string? metadata = null)
+    {
+        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(to) || to.Length > 64)
+        {
+            throw new KristParameterException("to");
+        }
+
+        var wallet = await walletRepository.GetWalletFromKeyAsync(privateKey);
+        if (wallet is null)
+        {
+            throw new KristException(ErrorCode.AuthenticationFailed);
+        }
+
+        if (amount > wallet.Balance)
+        {
+            throw new KristException(ErrorCode.InsufficientFunds);
+        }
+
+        var isName = Validation.IsMetaNameValid(to);
+
+        var recipientAddress = await walletRepository.GetAddressAsync(to);
+        if (recipientAddress is null)
+        {
+            throw new KristException(ErrorCode.AddressNotFound);
+        }
+
+        if (isName)
+        {
+            var nameData = ParseName(to) ?? (null, null);
+            var name = await nameRepository.GetNameAsync(nameData.Name);
+        }
+
+        var transaction = new TransactionEntity
+        {
+            Amount = amount,
+            From = wallet.Address,
+            To = recipientAddress.Address,
+            Metadata = metadata,
+        };
+
+        return null;
+    }
+
+    public static (string? MetaName, string? Name)? ParseName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        var matches = KroNameRegex().Matches(name);
+        if (matches.Count == 0)
+        {
+            return null;
+        }
+
+        var metaNameMatch = matches[1];
+        var nameMatch = matches[2];
+
+        return (metaNameMatch.Value, nameMatch.Value);
     }
 }

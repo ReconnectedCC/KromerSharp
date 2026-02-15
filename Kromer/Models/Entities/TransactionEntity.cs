@@ -1,8 +1,10 @@
-﻿using Kromer.Models.Dto;
+﻿using System.Text.RegularExpressions;
+using Kromer.Models.Dto;
+using Kromer.Utils;
 
 namespace Kromer.Models.Entities;
 
-public partial class TransactionEntity
+public class TransactionEntity
 {
     public int Id { get; set; }
 
