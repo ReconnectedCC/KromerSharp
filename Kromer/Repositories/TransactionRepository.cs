@@ -1,12 +1,16 @@
 ﻿using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
+using Kromer.Models.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Kromer.Repositories;
 
 public class TransactionRepository(KromerContext context, ILogger<TransactionRepository> logger)
 {
+    public const string ServerWallet = "serverwelf";
+    
     private IQueryable<TransactionEntity> PrepareAddressTransactions(string address, bool excludeMined = false)
     {
         var query = context.Transactions
@@ -42,7 +46,7 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
     }
 
     /// <summary>
-    /// Create and track a simple transaction, changes are not committed to the database.
+    /// Create and track a new simple transaction and update the relevant wallets. Changes are not committed to the database.
     /// This method does not validate balance.
     /// </summary>
     /// <param name="from">Sender address.</param>
@@ -67,7 +71,7 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
     }
 
     /// <summary>
-    /// Create and track a new transaction, changes are not committed to the database.
+    /// Create and track a new transaction and update the relevant wallets. Changes are not committed to the database.
     /// This method does not validate balance.
     /// </summary>
     /// <param name="transaction">Transaction entity.</param>
@@ -76,7 +80,41 @@ public class TransactionRepository(KromerContext context, ILogger<TransactionRep
     {
         ArgumentNullException.ThrowIfNull(transaction);
 
+        if (transaction.Amount < 0)
+        {
+            throw new KristException(ErrorCode.InvalidAmount);
+        }
+
+        if (string.IsNullOrWhiteSpace(transaction.From))
+        {
+            transaction.From = ServerWallet;
+        }
+
+        if (string.IsNullOrWhiteSpace(transaction.To))
+        {
+            transaction.To = ServerWallet;
+        }
+        
+        var senderWallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.From));
+        
+        var recipientWallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.To));
+
+        if (senderWallet is null || recipientWallet is null)
+        {
+            throw new KristException(ErrorCode.AddressNotFound);
+        }
+        
+        // Sanitize names?
+        transaction.From = senderWallet.Address;
+        transaction.To = recipientWallet.Address;
+        
+        // Apply balance updates
+        senderWallet.Balance -= transaction.Amount;
+        recipientWallet.Balance += transaction.Amount;
+
         await context.Transactions.AddAsync(transaction);
+        context.Entry(senderWallet).State = EntityState.Modified;
+        context.Entry(recipientWallet).State = EntityState.Modified;
 
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,

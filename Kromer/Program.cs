@@ -61,6 +61,7 @@ app.UseExceptionHandler(builder =>
             {
                 Ok = false,
                 Error = kristException.Error,
+                Message = kristException.Message,
             };
 
             if (exception is KristParameterException parameterException)

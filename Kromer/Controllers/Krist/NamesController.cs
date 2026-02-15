@@ -113,7 +113,25 @@ public class NamesController(NameRepository nameRepository) : ControllerBase
     public async Task<ActionResult<KristResultName>> TransferName(string name,
         [FromBody] KristRequestNameTransfer request)
     {
-        throw new NotImplementedException();
         var result = await nameRepository.TransferNameAsync(request.PrivateKey, name, request.Address);
+
+        return new KristResultName
+        {
+            Ok = true,
+            Name = result
+        };
+    }
+    
+    [HttpPost("{name}/update")]
+    [HttpPut("{name}/update")]
+    public async Task<ActionResult<KristResultName>> UpdateName(string name, [FromBody] KristRequestNameUpdate request)
+    {
+        var result = await nameRepository.UpdateNameAsync(request.PrivateKey, name, request.A);
+
+        return new KristResultName
+        {
+            Ok = true,
+            Name = result
+        };
     }
 }

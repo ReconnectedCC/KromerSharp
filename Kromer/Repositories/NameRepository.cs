@@ -116,7 +116,7 @@ public partial class NameRepository(
         name = SanitizeName(name);
 
 
-        var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, "serverwelf",
+        var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, TransactionRepository.ServerWallet,
             newNameCost, TransactionType.NamePurchase);
 
         logger.LogInformation("Registering name '{Name}' for address {WalletAddress}", name, wallet.Address);
@@ -152,13 +152,77 @@ public partial class NameRepository(
             throw new KristParameterException("name");
         }
 
-        if (!await ExistsAsync(name))
+        var nameEntity = await context.Names.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+        if (nameEntity is null)
         {
             throw new KristException(ErrorCode.NameNotFound);
         }
 
-        var nameEntity = await context.Names.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+        var wallet = await walletRepository.GetWalletFromKeyAsync(privateKey);
+        if (wallet is null)
+        {
+            throw new KristException(ErrorCode.AddressNotFound); // ig ??
+        }
 
-        throw new NotImplementedException();
+        var recipientAddress = await walletRepository.GetAddressAsync(address);
+        if (recipientAddress is null)
+        {
+            throw new KristException(ErrorCode.AddressNotFound);
+        }
+
+        if (!nameEntity.Owner.Equals(wallet.Address, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new KristException(ErrorCode.NotNameOwner);
+        }
+
+        if (nameEntity.Owner.Equals(address, StringComparison.OrdinalIgnoreCase))
+        {
+            // self transfer
+            return NameDto.FromEntity(nameEntity);
+        }
+
+        nameEntity.Owner = recipientAddress.Address;
+        nameEntity.LastTransfered = DateTime.UtcNow;
+        context.Entry(nameEntity).State = EntityState.Modified;
+        
+        var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, recipientAddress.Address, 0, TransactionType.NameTransfer);
+        transaction.Name = name;
+        
+        await context.SaveChangesAsync();
+
+        return NameDto.FromEntity(nameEntity);
+    }
+
+    public async Task<NameDto> UpdateNameAsync(string privateKey, string name, string? metadata)
+    {
+        if (!IsNameValid(name))
+        {
+            throw new KristParameterException("name");
+        }
+
+        var nameEntity = await context.Names.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+        if (nameEntity is null)
+        {
+            throw new KristException(ErrorCode.NameNotFound);
+        }
+
+        var wallet = await walletRepository.GetWalletFromKeyAsync(privateKey);
+        if (wallet is null)
+        {
+            throw new KristException(ErrorCode.AddressNotFound); // ig ??
+        }
+
+        if (!nameEntity.Owner.Equals(wallet.Address, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new KristException(ErrorCode.NotNameOwner);
+        }
+
+        nameEntity.Metadata = metadata;
+        nameEntity.LastUpdated = DateTime.UtcNow;
+        context.Entry(nameEntity).State = EntityState.Modified;
+        
+        await context.SaveChangesAsync();
+        
+        return NameDto.FromEntity(nameEntity);
     }
 }

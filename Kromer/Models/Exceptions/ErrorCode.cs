@@ -29,4 +29,8 @@ public enum ErrorCode
     [Description("Invalid name ownership")]
     [StatusCode(HttpStatusCode.Forbidden)]
     NotNameOwner,
+    
+    [Description("Invalid amount number")]
+    [StatusCode(HttpStatusCode.Forbidden)]
+    InvalidAmount,
 }
