@@ -1,11 +1,9 @@
-﻿using System.Text.RegularExpressions;
-using Kromer.Data;
+﻿using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Kromer.Utils;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Kromer.Repositories;
 
@@ -13,13 +11,9 @@ public partial class TransactionRepository(
     KromerContext context,
     ILogger<TransactionRepository> logger,
     WalletRepository walletRepository,
-    NameRepository nameRepository)
+    NameRepository nameRepository,
+    TransactionService transactionService)
 {
-    public const string ServerWallet = "serverwelf";
-
-    [GeneratedRegex(@"^(?:([a-z0-9-_]{1,32})@)?([a-z0-9]{1,64})\.kro", RegexOptions.Compiled)]
-    public static partial Regex KroNameRegex();
-
     private IQueryable<TransactionEntity> PrepareAddressTransactions(string address, bool excludeMined = false)
     {
         var query = context.Transactions
@@ -52,88 +46,6 @@ public partial class TransactionRepository(
         var total = await PrepareAddressTransactions(address, excludeMined).CountAsync();
 
         return total;
-    }
-
-    /// <summary>
-    /// Create and track a new simple transaction and update the relevant wallets. Changes are not committed to the database.
-    /// This method does not validate balance.
-    /// </summary>
-    /// <param name="from">Sender address.</param>
-    /// <param name="to">Recipient address.</param>
-    /// <param name="amount">Transaction amount.</param>
-    /// <param name="transactionType">Type of transaction.</param>
-    /// <returns>Tracked transaction entity.</returns>
-    public async Task<TransactionEntity> CreateSimpleTransactionAsync(string from, string to, decimal amount,
-        TransactionType transactionType)
-    {
-        var transaction = new TransactionEntity
-        {
-            From = from,
-            To = to,
-            Amount = amount,
-            TransactionType = transactionType,
-
-            Date = DateTime.UtcNow,
-        };
-
-        return await CreateTransactionAsync(transaction);
-    }
-
-    /// <summary>
-    /// Create and track a new transaction and update the relevant wallets. Changes are not committed to the database.
-    /// This method does not validate balance.
-    /// </summary>
-    /// <param name="transaction">Transaction entity.</param>
-    /// <returns>Tracked transaction entity.</returns>
-    public async Task<TransactionEntity> CreateTransactionAsync(TransactionEntity transaction)
-    {
-        ArgumentNullException.ThrowIfNull(transaction);
-
-        if (transaction.Amount < 0)
-        {
-            throw new KristException(ErrorCode.InvalidAmount);
-        }
-
-        transaction.Amount = Math.Round(transaction.Amount, 2, MidpointRounding.ToZero);
-
-        if (string.IsNullOrWhiteSpace(transaction.From))
-        {
-            transaction.From = ServerWallet;
-        }
-
-        if (string.IsNullOrWhiteSpace(transaction.To))
-        {
-            transaction.To = ServerWallet;
-        }
-
-        var senderWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.From));
-
-        var recipientWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.To));
-
-        if (senderWallet is null || recipientWallet is null)
-        {
-            throw new KristException(ErrorCode.AddressNotFound);
-        }
-
-        // Sanitize names?
-        transaction.From = senderWallet.Address;
-        transaction.To = recipientWallet.Address;
-
-        // Apply balance updates
-        senderWallet.Balance -= transaction.Amount;
-        recipientWallet.Balance += transaction.Amount;
-
-        await context.Transactions.AddAsync(transaction);
-        context.Entry(senderWallet).State = EntityState.Modified;
-        context.Entry(recipientWallet).State = EntityState.Modified;
-
-        logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
-            transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,
-            transaction.Metadata);
-
-        return transaction;
     }
 
     private IQueryable<TransactionEntity> PrepareTransactionList(bool excludeMined)
@@ -197,7 +109,11 @@ public partial class TransactionRepository(
     public async Task<TransactionDto> RequestCreateTransaction(string privateKey, string to, decimal amount,
         string? metadata = null)
     {
-        throw new NotImplementedException();
+        if (amount <= 0)
+        {
+            throw new KristException(ErrorCode.InvalidAmount);
+        }
+        
         if (string.IsNullOrEmpty(to) || to.Length > 64)
         {
             throw new KristParameterException("to");
@@ -214,29 +130,50 @@ public partial class TransactionRepository(
             throw new KristException(ErrorCode.InsufficientFunds);
         }
 
-        var isName = Validation.IsMetaNameValid(to);
+        var nameData = Validation.ParseMetaName(to);
 
-        var recipientAddress = await walletRepository.GetAddressAsync(to);
-        if (recipientAddress is null)
+        string recipientAddress;
+        if (nameData.Valid)
+        {
+            var name = await nameRepository.GetNameAsync(nameData.Name);
+            if (name is null)
+            {
+                throw new KristException(ErrorCode.NameNotFound);
+            }
+            recipientAddress = name.Owner;
+        }
+        else
+        {
+            recipientAddress = to;
+        }
+        
+        var recipient = await walletRepository.GetWalletFromAddress(recipientAddress);
+        if (recipient is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
 
-        if (isName)
+        if (recipient.Address == wallet.Address)
         {
-            var nameData = ParseName(to) ?? (null, null);
-            var name = await nameRepository.GetNameAsync(nameData.Name);
+            throw new KristException(ErrorCode.SameWalletTransfer);
         }
-
+        
         var transaction = new TransactionEntity
         {
             Amount = amount,
             From = wallet.Address,
-            To = recipientAddress.Address,
+            To = recipient.Address,
             Metadata = metadata,
+            SentName = nameData.Valid ? nameData.Name : null,
+            SentMetaname = nameData.Valid && !string.IsNullOrWhiteSpace(nameData.Meta) ? nameData.Meta : null,
+            Date = DateTime.UtcNow,
+            TransactionType = TransactionType.Transfer,
         };
-
-        return null;
+        
+        await transactionService.CreateTransactionAsync(transaction);
+        await context.SaveChangesAsync();
+        
+        return TransactionDto.FromEntity(transaction);
     }
 
     public static (string? MetaName, string? Name)? ParseName(string name)
@@ -246,7 +183,7 @@ public partial class TransactionRepository(
             return null;
         }
 
-        var matches = KroNameRegex().Matches(name);
+        var matches = Validation.MetaNameRegex().Matches(name);
         if (matches.Count == 0)
         {
             return null;

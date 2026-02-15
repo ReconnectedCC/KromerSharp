@@ -15,8 +15,8 @@ public partial class NameRepository(
     KromerContext context,
     IConfiguration configuration,
     WalletRepository walletRepository,
-    TransactionRepository transactionRepository,
-    ILogger<NameRepository> logger)
+    ILogger<NameRepository> logger,
+    TransactionService transactionService)
 {
     public async Task<IList<NameDto>> GetAddressNamesAsync(string address, int limit = 50, int offset = 0)
     {
@@ -113,7 +113,7 @@ public partial class NameRepository(
         name = Validation.SanitizeName(name);
 
 
-        var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, TransactionRepository.ServerWallet,
+        var transaction = await transactionService.CreateSimpleTransactionAsync(wallet.Address, TransactionService.ServerWallet,
             newNameCost, TransactionType.NamePurchase);
 
         logger.LogInformation("Registering name '{Name}' for address {WalletAddress}", name, wallet.Address);
@@ -172,7 +172,7 @@ public partial class NameRepository(
         nameEntity.LastTransfered = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
         
-        var transaction = await transactionRepository.CreateSimpleTransactionAsync(wallet.Address, recipientAddress.Address, 0, TransactionType.NameTransfer);
+        var transaction = await transactionService.CreateSimpleTransactionAsync(wallet.Address, recipientAddress.Address, 0, TransactionType.NameTransfer);
         transaction.Name = name;
         
         await context.SaveChangesAsync();

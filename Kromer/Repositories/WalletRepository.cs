@@ -127,6 +127,14 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
         return null;
     }
 
+    public async Task<WalletEntity?> GetWalletFromAddress(string address)
+    {
+        var wallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, address));
+
+        return wallet;
+    }
+
+
     public async Task<WalletAuthenticationResult> VerifyAddressAsync(string privateKey)
     {
         var wallet = await GetWalletFromKeyAsync(privateKey);

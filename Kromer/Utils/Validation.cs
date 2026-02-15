@@ -40,6 +40,26 @@ public static partial class Validation
     {
         return MetaNameRegex().IsMatch(name.ToLowerInvariant());
     }
+    
+    public static MetaNameResult ParseMetaName(string name)
+    {
+        var match = MetaNameRegex().Match(name);
+        if (!match.Success)
+        {
+            return new MetaNameResult
+            {
+                Valid = false,
+            };
+        }
+
+        return new MetaNameResult
+        {
+            Valid = true,
+            Name = match.Groups[2].Value,
+            Meta = match.Groups[1].Value
+        };
+    }
+
 
     public static string SanitizeName(string name)
     {

@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using Kromer;
 using Kromer.Data;
 using Kromer.Models.Api.Krist;
-using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Kromer.Repositories;
@@ -21,6 +20,8 @@ builder.Services.AddScoped<WalletRepository>();
 builder.Services.AddScoped<TransactionRepository>();
 builder.Services.AddScoped<NameRepository>();
 builder.Services.AddScoped<MiscRepository>();
+
+builder.Services.AddScoped<TransactionService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

@@ -41,4 +41,8 @@ public enum ErrorCode
     [Description("Authentication failed")]
     [StatusCode(HttpStatusCode.Unauthorized)]
     AuthenticationFailed,
+    
+    [Description("Same wallet transfer")]
+    [StatusCode(HttpStatusCode.Forbidden)]
+    SameWalletTransfer
 }
