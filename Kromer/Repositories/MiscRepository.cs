@@ -20,7 +20,7 @@ public class MiscRepository(IConfiguration configuration)
     {
         return new KristMotdResponse
         {
-            Motd = "die or smth",
+            Motd = "Welcome to Kromer.",
             Set = DateTime.UtcNow,
             MotdSet = DateTime.UtcNow,
             PublicUrl = GetPublicUrl(),

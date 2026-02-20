@@ -1,9 +1,9 @@
-﻿using Kromer.Models.Dto;
+﻿using Kromer.Models.Entities;
 
 namespace Kromer.Models;
 
 public class WalletAuthenticationResult
 {
-    public WalletDto? Wallet { get; set; }
+    public WalletEntity? Wallet { get; set; }
     public bool Authed { get; set; }
 }

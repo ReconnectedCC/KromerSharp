@@ -1,5 +1,6 @@
 using Kromer.Models.Api.V1;
 using Kromer.Models.Dto;
+using Kromer.Models.Exceptions;
 using Kromer.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +17,7 @@ public class WalletController(WalletRepository walletRepository) : ControllerBas
         
         if (playerWallets.Count == 0)
         {
-            return NotFound(new Result<WalletDto>("player_error")); // TODO: add proper errors
+            throw new KromerException(ErrorCode.PlayerError);
         }
         
         var response = new ResultList<WalletDto>
@@ -34,7 +35,7 @@ public class WalletController(WalletRepository walletRepository) : ControllerBas
         
         if (playerWallets.Count == 0)
         {
-            return NotFound(new Result<WalletDto>("player_error")); // TODO: add proper errors
+            throw new KromerException(ErrorCode.PlayerError);
         }
         
         var response = new ResultList<WalletDto>

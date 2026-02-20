@@ -8,7 +8,7 @@ namespace Kromer.Repositories;
 public class TransactionService(KromerContext context, ILogger<TransactionService> logger)
 {
     public const string ServerWallet = "serverwelf";
-    
+
     /// <summary>
     /// Create and track a new simple transaction and update the relevant wallets. Changes are not committed to the database.
     /// This method does not validate balance.
@@ -43,10 +43,10 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
     public async Task<TransactionEntity> CreateTransactionAsync(TransactionEntity transaction)
     {
         // TODO: Emit WS transaction event
-        
+
         ArgumentNullException.ThrowIfNull(transaction);
 
-        if (transaction.Amount < 0)
+        if (transaction.Amount <= 0)
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
@@ -79,7 +79,11 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
         transaction.To = recipientWallet.Address;
 
         // Apply balance updates
-        senderWallet.Balance -= transaction.Amount;
+        if (senderWallet.Address != ServerWallet)
+        {
+            senderWallet.Balance -= transaction.Amount;
+        }
+
         recipientWallet.Balance += transaction.Amount;
 
         await context.Transactions.AddAsync(transaction);

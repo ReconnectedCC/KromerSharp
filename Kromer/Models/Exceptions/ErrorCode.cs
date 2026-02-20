@@ -44,5 +44,13 @@ public enum ErrorCode
     
     [Description("Same wallet transfer")]
     [StatusCode(HttpStatusCode.Forbidden)]
-    SameWalletTransfer
+    SameWalletTransfer,
+    
+    [Description("Resource not found")]
+    [StatusCode(HttpStatusCode.NotFound)]
+    ResourceNotFound,
+    
+    [Description("Player was not found")]
+    [StatusCode(HttpStatusCode.NotFound)]
+    PlayerError,
 }

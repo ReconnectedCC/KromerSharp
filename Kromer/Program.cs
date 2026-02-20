@@ -2,15 +2,17 @@ using System.Text.Json.Serialization;
 using Kromer;
 using Kromer.Data;
 using Kromer.Models.Api.Krist;
+using Kromer.Models.Api.V1;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Kromer.Repositories;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddDbContext<KromerContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"),
@@ -20,8 +22,12 @@ builder.Services.AddScoped<WalletRepository>();
 builder.Services.AddScoped<TransactionRepository>();
 builder.Services.AddScoped<NameRepository>();
 builder.Services.AddScoped<MiscRepository>();
+builder.Services.AddScoped<PlayerRepository>();
 
 builder.Services.AddScoped<TransactionService>();
+
+// Support for reverse proxies, like NGINX
+builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.All; });
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -35,6 +41,8 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -74,6 +82,22 @@ app.UseExceptionHandler(builder =>
             context.Response.ContentType = "application/json";
 
             await context.Response.WriteAsJsonAsync(error);
+
+            return;
+        }
+        else if (exception is KromerException kromerException)
+        {
+            var result = Result<object>.Throw(new Error
+            {
+                Code = kromerException.Error,
+                Message = kromerException.Message,
+                Details = Array.Empty<object>(),
+            });
+            
+            context.Response.StatusCode = (int)kromerException.GetStatusCode();
+            context.Response.ContentType = "application/json";
+            
+            await context.Response.WriteAsJsonAsync(result);
 
             return;
         }

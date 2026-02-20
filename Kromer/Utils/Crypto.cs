@@ -65,4 +65,10 @@ public static class Crypto
 
         return (char)resByte;
     }
+
+    public static string GenerateSecurePassword(int length = 32)
+    {
+        const string charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
+        return RandomNumberGenerator.GetString(charset, length);
+    }
 }

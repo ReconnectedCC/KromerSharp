@@ -139,13 +139,10 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
     {
         var wallet = await GetWalletFromKeyAsync(privateKey);
 
-
         return new WalletAuthenticationResult
         {
             Authed = wallet is not null,
-            Wallet = wallet is not null
-                ? WalletDto.FromEntity(wallet)
-                : null
+            Wallet = wallet,
         };
     }
 

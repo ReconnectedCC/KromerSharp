@@ -1,14 +1,12 @@
-﻿namespace Kromer.Models.Api.V1;
+﻿using Microsoft.CodeAnalysis.CSharp;
+
+namespace Kromer.Models.Api.V1;
 
 public class Result<T>
 {
     public T? Data { get; set; }
     
-    public string? Code  { get; set; }
-    
-    public string? Message { get; set; }
-    
-    public IEnumerable<string>? Details  { get; set; }
+    public Error? Error { get; set; }
 
     public Result()
     {
@@ -17,12 +15,13 @@ public class Result<T>
     public Result(T data) {
         Data = data;
     }
-
-    public Result(string error)
+    
+    public static Result<object> Throw(Error error)
     {
-        Data = default;
-        Code = error;
-        Message = error;
-        Details = [];
-    }
+        var result = new Result<object>(default(T))
+        {
+            Error = error
+        };
+        return result;
+    } 
 }

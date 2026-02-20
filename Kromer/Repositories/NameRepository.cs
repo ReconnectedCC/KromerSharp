@@ -73,7 +73,7 @@ public partial class NameRepository(
 
     public decimal GetNameCost()
     {
-        return configuration.GetValue<decimal>("Kromer:NameCost", 500);
+        return configuration.GetValue<decimal>("NameCost", 500);
     }
 
     public async Task<bool> ExistsAsync(string name)
