@@ -133,7 +133,16 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
     {
         var websocket = session.WebSocket;
 
-        await session.SendAsync(new KristHelloPacket());
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var miscRepository = scope.ServiceProvider.GetRequiredService<MiscRepository>();
+        await session.SendAsync(new KristHelloPacket
+        {
+            Motd = "Welcome to Kromer.",
+            Set = DateTime.UtcNow,
+            MotdSet = DateTime.UtcNow,
+            PublicUrl = miscRepository.GetPublicUrl(),
+            PublicWsUrl = miscRepository.GetPublicWsUrl(),
+        });
 
         var buffer = new byte[4096];
         var message = new StringBuilder();
