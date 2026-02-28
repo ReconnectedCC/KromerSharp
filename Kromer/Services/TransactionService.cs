@@ -1,11 +1,14 @@
-﻿using Kromer.Data;
+﻿using System.Threading.Channels;
+using Kromer.Data;
+using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Models.WebSocket.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Services;
 
-public class TransactionService(KromerContext context, ILogger<TransactionService> logger)
+public class TransactionService(KromerContext context, ILogger<TransactionService> logger, Channel<IKristEvent> eventChannel)
 {
     public const string ServerWallet = "serverwelf";
 
@@ -42,8 +45,6 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
     /// <returns>Tracked transaction entity.</returns>
     public async Task<TransactionEntity> CreateTransactionAsync(TransactionEntity transaction)
     {
-        // TODO: Emit WS transaction event
-
         ArgumentNullException.ThrowIfNull(transaction);
 
         if (transaction.Amount <= 0)
@@ -93,6 +94,12 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,
             transaction.Metadata);
+        
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
 
         return transaction;
     }

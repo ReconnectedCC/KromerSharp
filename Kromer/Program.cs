@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Kromer;
@@ -6,6 +7,7 @@ using Kromer.Models.Api.Krist;
 using Kromer.Models.Api.V1;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Models.WebSocket.Events;
 using Kromer.Repositories;
 using Kromer.Services;
 using Kromer.SessionManager;
@@ -31,7 +33,7 @@ builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<SessionService>();
 
 builder.Services.AddSingleton<SessionManager>();
-builder.Services.AddSingleton(Channel.CreateUnbounded<KristEvent>());
+builder.Services.AddSingleton(Channel.CreateUnbounded<IKristEvent>());
 
 builder.Services.AddHostedService<EventDispatcher>();
 builder.Services.AddHostedService<BackgroundSessionJob>();
@@ -44,7 +46,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
         //options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(new SnakeCaseNamingPolicy()));
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
     });
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -55,10 +57,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.MapOpenApi(pattern:"/openapi/v1.json");
 
 app.UseHttpsRedirection();
 
@@ -105,10 +104,10 @@ app.UseExceptionHandler(builder =>
                 Message = kromerException.Message,
                 Details = Array.Empty<object>(),
             });
-            
+
             context.Response.StatusCode = (int)kromerException.GetStatusCode();
             context.Response.ContentType = "application/json";
-            
+
             await context.Response.WriteAsJsonAsync(result);
 
             return;

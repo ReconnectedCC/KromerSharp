@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using System.Threading.Channels;
 using Kromer.Data;
 using Kromer.Models.Api;
 using Kromer.Models.Api.Krist;
@@ -6,6 +7,7 @@ using Kromer.Models.Api.Krist.Name;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Models.WebSocket.Events;
 using Kromer.Services;
 using Kromer.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +19,8 @@ public partial class NameRepository(
     IConfiguration configuration,
     WalletRepository walletRepository,
     ILogger<NameRepository> logger,
-    TransactionService transactionService)
+    TransactionService transactionService,
+    Channel<IKristEvent> eventChannel)
 {
     public async Task<IList<NameDto>> GetAddressNamesAsync(string address, int limit = 50, int offset = 0)
     {
@@ -130,6 +133,11 @@ public partial class NameRepository(
         await context.Names.AddAsync(nameEntity);
         await context.SaveChangesAsync();
 
+        await eventChannel.Writer.WriteAsync(new KristNameEvent
+        {
+            Name = NameDto.FromEntity(nameEntity),
+        });
+
         return nameEntity;
     }
 
@@ -177,6 +185,11 @@ public partial class NameRepository(
         transaction.Name = name;
         
         await context.SaveChangesAsync();
+        
+        await eventChannel.Writer.WriteAsync(new KristNameEvent
+        {
+            Name = NameDto.FromEntity(nameEntity),
+        });
 
         return NameDto.FromEntity(nameEntity);
     }
@@ -210,6 +223,11 @@ public partial class NameRepository(
         context.Entry(nameEntity).State = EntityState.Modified;
         
         await context.SaveChangesAsync();
+        
+        await eventChannel.Writer.WriteAsync(new KristNameEvent
+        {
+            Name = NameDto.FromEntity(nameEntity),
+        });
         
         return NameDto.FromEntity(nameEntity);
     }

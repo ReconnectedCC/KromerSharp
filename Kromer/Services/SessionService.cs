@@ -1,17 +1,15 @@
-﻿using System.Text.Json;
-using System.Threading.Channels;
-using Kromer.Models.Api.Krist.WebSocket.Events;
+﻿using System.Threading.Channels;
 using Kromer.Models.Exceptions;
 using Kromer.Models.WebSocket;
+using Kromer.Models.WebSocket.Events;
 using Kromer.Repositories;
-using Kromer.SessionManager;
 
 namespace Kromer.Services;
 
 public class SessionService(
     SessionManager.SessionManager sessionManager,
     WalletRepository walletRepository,
-    Channel<KristEvent> channel,
+    Channel<IKristEvent> channel,
     ILogger<SessionService> logger)
 {
     public async Task<Guid> InstantiateSession(string? privateKey = null)
@@ -47,10 +45,5 @@ public class SessionService(
         logger.LogInformation("WebSocket session {SessionId} connected", sessionId);
 
         return session;
-    }
-
-    public async Task BroadcastEventAsync(KristEvent kristEvent)
-    {
-        await channel.Writer.WriteAsync(kristEvent);
     }
 }

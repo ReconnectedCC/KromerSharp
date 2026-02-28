@@ -1,10 +1,8 @@
 ﻿using Kromer.Models.Api.Krist.Wallet;
 using Kromer.Models.Api.Krist.WebSocket;
-using Kromer.Models.WebSocket;
 using Kromer.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
 
 namespace Kromer.Controllers.Krist;
 
@@ -18,7 +16,7 @@ public class WebSocketController(SessionService sessionService, SessionManager.S
         KristRequestPrivateKey? request = null)
     {
         var sessionId = await sessionService.InstantiateSession(request?.PrivateKey);
-        var url = $"wss://{HttpContext.Request.Host}/api/krist/gateway/{sessionId}";
+        var url = $"wss://{HttpContext.Request.Host}/api/krist/ws/gateway/{sessionId}";
 
         return new KristResponseWebSocketInitiate
         {

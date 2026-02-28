@@ -56,5 +56,9 @@ public enum ErrorCode
     
     [Description("Invalid websocket token")]
     [StatusCode(HttpStatusCode.Unauthorized)]
-    InvalidWebsocketToken
+    InvalidWebsocketToken,
+    
+    [Description("Invalid request type")]
+    [StatusCode(HttpStatusCode.BadRequest)]
+    InvalidRequestType,
 }

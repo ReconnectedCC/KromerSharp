@@ -1,12 +1,13 @@
-﻿using Kromer.Data;
+﻿using System.Threading.Channels;
+using Kromer.Data;
 using Kromer.Models;
 using Kromer.Models.Api.Internal;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Models.WebSocket.Events;
 using Kromer.Services;
 using Kromer.Utils;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Repositories;
@@ -16,7 +17,8 @@ public class PlayerRepository(
     ILogger<PlayerRepository> logger,
     WalletRepository walletRepository,
     IConfiguration configuration,
-    TransactionService transactionService)
+    TransactionService transactionService,
+    Channel<IKristEvent> eventChannel)
 {
     public decimal GetInitialBalance()
     {

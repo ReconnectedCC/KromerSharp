@@ -8,6 +8,7 @@ public class BackgroundSessionJob(SessionManager sessionManager) : BackgroundSer
         while (!stoppingToken.IsCancellationRequested)
         {
             await sessionManager.PingSessionsAsync();
+            sessionManager.CleanupSessions();
             
             await Task.Delay(10_000, stoppingToken);
         }
