@@ -16,7 +16,7 @@ public class RequireInternalKeyFilter(IConfiguration configuration) : IAuthoriza
             context.Result = new UnauthorizedResult();
             return;
         }
-        
+
         var key = configuration.GetValue<string>("InternalKey");
         if (key is null)
         {

@@ -32,7 +32,7 @@ public class KristMotdResponse : KristResult
     public object? LastBlock { get; set; } = null;
 
     public MotdPackage Package { get; set; } = new MotdPackage();
-    
+
     public MotdConstants Constants { get; set; } = new MotdConstants();
 
     public MotdCurrency Currency { get; set; } = new MotdCurrency();
@@ -55,13 +55,13 @@ public class KristMotdResponse : KristResult
     public class MotdConstants
     {
         public int WalletVersion { get; set; } = 3;
-        
+
         public int NonceMaxSize { get; set; } = 500;
 
         public int NameCost { get; set; } = 500;
 
         public int MinWork { get; set; } = 50;
-        
+
         public int MaxWork { get; set; } = 500;
 
         public decimal WorkFactor { get; set; } = 500m;
@@ -72,11 +72,11 @@ public class KristMotdResponse : KristResult
     public class MotdCurrency
     {
         public string AddressPrefix { get; set; } = "k";
-        
+
         public string NameSuffix { get; set; } = "kro";
 
         public string CurrencyName { get; set; } = "Kromer";
-        
+
         public string CurrencySymbol { get; set; } = "KRO";
     }
 }

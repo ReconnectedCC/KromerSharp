@@ -58,7 +58,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
-app.MapOpenApi(pattern:"/openapi/v1.json");
+app.MapOpenApi(pattern: "/openapi/v1.json");
 
 app.UseHttpsRedirection();
 

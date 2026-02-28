@@ -14,12 +14,12 @@ public class WalletController(WalletRepository walletRepository) : ControllerBas
     public async Task<ActionResult<ResultList<WalletDto>>> GetWalletByName(string name)
     {
         var playerWallets = await walletRepository.GetPlayerWalletsAsync(name);
-        
+
         if (playerWallets.Count == 0)
         {
             throw new KromerException(ErrorCode.PlayerError);
         }
-        
+
         var response = new ResultList<WalletDto>
         {
             Data = playerWallets,
@@ -27,17 +27,17 @@ public class WalletController(WalletRepository walletRepository) : ControllerBas
 
         return response;
     }
-    
+
     [HttpGet("by-player/{uuid:guid}")]
     public async Task<ActionResult<ResultList<WalletDto>>> GetWalletByPlayer(Guid uuid)
     {
         var playerWallets = await walletRepository.GetPlayerWalletsAsync(uuid);
-        
+
         if (playerWallets.Count == 0)
         {
             throw new KromerException(ErrorCode.PlayerError);
         }
-        
+
         var response = new ResultList<WalletDto>
         {
             Data = playerWallets,

@@ -23,6 +23,6 @@ public class TransactionEntity
     public string? SentMetaname { get; set; }
 
     public string? SentName { get; set; }
-    
+
     public TransactionType TransactionType { get; set; }
 }

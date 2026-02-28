@@ -40,7 +40,7 @@ public static partial class Validation
     {
         return MetaNameRegex().IsMatch(name.ToLowerInvariant());
     }
-    
+
     public static MetaNameResult ParseMetaName(string name)
     {
         var match = MetaNameRegex().Match(name);
@@ -65,22 +65,22 @@ public static partial class Validation
     {
         return name.Trim().ToLowerInvariant();
     }
-    
+
     public static bool IsValidAddress(string address)
     {
         return V2AddressRegex().IsMatch(address);
     }
-    
+
     public static bool IsValidAddressList(string addressList)
     {
         return AddressListRegex().IsMatch(addressList);
     }
-    
+
     public static bool IsValidARecord(string aRecord)
     {
         return ARecordRegex().IsMatch(aRecord);
     }
-    
+
     public static string StripNameSuffix(string name)
     {
         return name.ToLowerInvariant().EndsWith(".kro") ? name[..^4] : name;

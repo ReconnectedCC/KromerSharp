@@ -121,7 +121,7 @@ public class NamesController(NameRepository nameRepository) : ControllerBase
             Name = result
         };
     }
-    
+
     [HttpPost("{name}/update")]
     [HttpPut("{name}/update")]
     public async Task<ActionResult<KristResultName>> UpdateName(string name, [FromBody] KristRequestNameUpdate request)

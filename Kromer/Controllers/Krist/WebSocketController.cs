@@ -33,7 +33,7 @@ public class WebSocketController(SessionService sessionService, SessionManager.S
         {
             return BadRequest("Invalid WebSocket request");
         }
-        
+
         var session = sessionService.ValidateSession(sessionId);
         using var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
         session.WebSocket = webSocket;

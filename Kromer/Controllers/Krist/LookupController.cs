@@ -35,14 +35,14 @@ public class LookupController(LookupService lookupService) : ControllerBase
         [FromQuery] int offset = 0)
     {
         var addressList = addresses?.Split(',');
-        
+
         limit = Math.Clamp(limit, 1, 1000);
 
         if (!Enum.TryParse<TransactionOrderByParameter>(orderBy.Pascalize(), out var orderByParameter))
         {
             throw new KristParameterException("orderBy");
         }
-        
+
         if (!Enum.TryParse<OrderParameter>(order.ToLowerInvariant().Pascalize(), out var orderParameter))
         {
             throw new KristParameterException("order");
@@ -50,7 +50,7 @@ public class LookupController(LookupService lookupService) : ControllerBase
 
         return await lookupService.GetTransactions(addressList?.ToList() ?? [], orderByParameter, orderParameter, includeMined, limit, offset);
     }
-    
+
     [HttpGet("names/{addresses?}")]
     [HttpGet("names")]
     public async Task<ActionResult<KristResultNames>> GetNames(string? addresses,
@@ -60,14 +60,14 @@ public class LookupController(LookupService lookupService) : ControllerBase
         [FromQuery] int offset = 0)
     {
         var addressList = addresses?.Split(',');
-        
+
         limit = Math.Clamp(limit, 1, 1000);
 
         if (!Enum.TryParse<NameOrderByParameter>(orderBy.Pascalize(), out var orderByParameter))
         {
             throw new KristParameterException("orderBy");
         }
-        
+
         if (!Enum.TryParse<OrderParameter>(order.ToLowerInvariant().Pascalize(), out var orderParameter))
         {
             throw new KristParameterException("order");
@@ -75,7 +75,7 @@ public class LookupController(LookupService lookupService) : ControllerBase
 
         return await lookupService.GetNames(addressList?.ToList() ?? [], orderByParameter, orderParameter, limit, offset);
     }
-    
+
     [HttpGet("names/{name}/history")]
     public async Task<ActionResult<KristResultTransactions>> GetNameHistory(string name,
         [FromQuery] string orderBy = "id",
@@ -84,12 +84,12 @@ public class LookupController(LookupService lookupService) : ControllerBase
         [FromQuery] int offset = 0)
     {
         limit = Math.Clamp(limit, 1, 1000);
-        
+
         if (!Enum.TryParse<TransactionOrderByParameter>(orderBy.Pascalize(), out var orderByParameter))
         {
             throw new KristParameterException("orderBy");
         }
-        
+
         if (!Enum.TryParse<OrderParameter>(order.ToLowerInvariant().Pascalize(), out var orderParameter))
         {
             throw new KristParameterException("order");
@@ -97,7 +97,7 @@ public class LookupController(LookupService lookupService) : ControllerBase
 
         return await lookupService.GetNameHistory(name, orderByParameter, orderParameter, limit, offset);
     }
-    
+
     [HttpGet("names/{name}/transactions")]
     public async Task<ActionResult<KristResultTransactions>> GetNameTransactions(string name,
         [FromQuery] string orderBy = "id",
@@ -106,12 +106,12 @@ public class LookupController(LookupService lookupService) : ControllerBase
         [FromQuery] int offset = 0)
     {
         limit = Math.Clamp(limit, 1, 1000);
-        
+
         if (!Enum.TryParse<TransactionOrderByParameter>(orderBy.Pascalize(), out var orderByParameter))
         {
             throw new KristParameterException("orderBy");
         }
-        
+
         if (!Enum.TryParse<OrderParameter>(order.ToLowerInvariant().Pascalize(), out var orderParameter))
         {
             throw new KristParameterException("order");

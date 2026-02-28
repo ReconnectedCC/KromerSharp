@@ -32,7 +32,7 @@ public class TransactionDto
             From = transaction.From,
             To = transaction.To,
             Value = transaction.Amount,
-            Name =  transaction.Name,
+            Name = transaction.Name,
             Metadata = transaction.Metadata,
             SentMetaname = transaction.SentMetaname,
             SentName = transaction.SentName,

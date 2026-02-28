@@ -10,7 +10,7 @@ public class MiscRepository(IConfiguration configuration)
     {
         return configuration.GetValue<string>("PublicUrl") ?? string.Empty;
     }
-    
+
     public string GetPublicWsUrl()
     {
         return configuration.GetValue<string>("PublicWsUrl") ?? string.Empty;

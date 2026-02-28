@@ -20,18 +20,18 @@ public class EventDispatcher(SessionManager sessionManager, Channel<IKristEvent>
                     switch (kristEvent)
                     {
                         case KristNameEvent nameEvent:
-                        {
-                            var isOwn = nameEvent.Name.Owner == address;
-                            level = isOwn ? SubscriptionLevel.OwnNames : SubscriptionLevel.Names;
-                            break;
-                        }
+                            {
+                                var isOwn = nameEvent.Name.Owner == address;
+                                level = isOwn ? SubscriptionLevel.OwnNames : SubscriptionLevel.Names;
+                                break;
+                            }
                         case KristTransactionEvent transactionEvent:
-                        {
-                            var isOwn = transactionEvent.Transaction.To == address ||
-                                        transactionEvent.Transaction.From == address;
-                            level = isOwn ? SubscriptionLevel.OwnTransactions : SubscriptionLevel.Transactions;
-                            break;
-                        }
+                            {
+                                var isOwn = transactionEvent.Transaction.To == address ||
+                                            transactionEvent.Transaction.From == address;
+                                level = isOwn ? SubscriptionLevel.OwnTransactions : SubscriptionLevel.Transactions;
+                                break;
+                            }
                     }
 
                     if (level != 0 && session.SubscriptionLevel.HasFlag(level))

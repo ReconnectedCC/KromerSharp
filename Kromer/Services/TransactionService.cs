@@ -94,7 +94,7 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,
             transaction.Metadata);
-        
+
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {

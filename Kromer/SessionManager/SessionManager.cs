@@ -62,14 +62,14 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
             throw new KristParameterException(name);
         }
     }
-    
+
     private static List<string> GetSubscriptionLevels(SubscriptionLevel subscriptionLevels)
     {
         var levels = Enum.GetValues<SubscriptionLevel>()
             .Where(x => subscriptionLevels.HasFlag(x))
             .Select(x => x.ToString().Camelize())
             .ToList();
-        
+
         return levels;
     }
 
@@ -358,27 +358,27 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
         {
             throw new KristParameterException("event");
         }
-        
+
         session.SubscriptionLevel |= level;
-        
+
         return new KristWsSubscriptionLevelResponse
         {
             SubscriptionLevel = GetSubscriptionLevels(session.SubscriptionLevel),
         };
     }
-    
+
     public IKristWsResponse Unsubscribe(AsyncServiceScope scope, string rawData, Session session)
     {
         var request = ParseRequest<KristWsSubscribeRequest>(rawData);
         Assert("event", request.Event);
-        
+
         if (!Enum.TryParse<SubscriptionLevel>(request.Event.Pascalize(), out var level))
         {
             throw new KristParameterException("event");
         }
-        
+
         session.SubscriptionLevel &= ~level;
-        
+
         return new KristWsSubscriptionLevelResponse
         {
             SubscriptionLevel = GetSubscriptionLevels(session.SubscriptionLevel),

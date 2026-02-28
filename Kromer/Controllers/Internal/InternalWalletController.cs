@@ -23,7 +23,7 @@ public class InternalWalletController(PlayerRepository playerRepository) : Contr
         var response = await playerRepository.GiveMoneyAsync(request.Address, request.Amount);
         return response;
     }
-    
+
     [HttpGet("by-player/{uuid:guid}")]
     public async Task<ActionResult<WalletsResponse>> GetWalletByPlayer(Guid uuid)
     {

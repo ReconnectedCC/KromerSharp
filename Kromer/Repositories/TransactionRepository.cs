@@ -113,7 +113,7 @@ public partial class TransactionRepository(
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
-        
+
         if (string.IsNullOrEmpty(to) || to.Length > 64)
         {
             throw new KristParameterException("to");
@@ -146,7 +146,7 @@ public partial class TransactionRepository(
         {
             recipientAddress = to;
         }
-        
+
         var recipient = await walletRepository.GetWalletFromAddress(recipientAddress);
         if (recipient is null)
         {
@@ -157,7 +157,7 @@ public partial class TransactionRepository(
         {
             throw new KristException(ErrorCode.SameWalletTransfer);
         }
-        
+
         var transaction = new TransactionEntity
         {
             Amount = amount,
@@ -169,10 +169,10 @@ public partial class TransactionRepository(
             Date = DateTime.UtcNow,
             TransactionType = TransactionType.Transfer,
         };
-        
+
         await transactionService.CreateTransactionAsync(transaction);
         await context.SaveChangesAsync();
-        
+
         return TransactionDto.FromEntity(transaction);
     }
 

@@ -9,7 +9,7 @@ public sealed class StatusCodeAttribute : Attribute
     public static readonly StatusCodeAttribute Default = new();
 
     private HttpStatusCode StatusCodeValue { get; set; }
-    
+
     public StatusCodeAttribute() : this(HttpStatusCode.BadRequest)
     {
     }

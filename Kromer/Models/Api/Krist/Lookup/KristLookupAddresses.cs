@@ -9,6 +9,6 @@ public class KristLookupAddresses : KristResult
 
     [JsonPropertyName("notFound")]
     public int NotFound { get; set; } = 0;
-    
+
     public Dictionary<string, AddressDto> Addresses { get; set; } = new();
 }

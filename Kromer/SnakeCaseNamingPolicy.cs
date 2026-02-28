@@ -12,7 +12,7 @@ public class SnakeCaseNamingPolicy : JsonNamingPolicy
     {
         return SnakeCaseNamingStrategy.GetPropertyName(name, false);
     }
-    
+
     public override string ConvertName(string name)
     {
         return Convert(name);

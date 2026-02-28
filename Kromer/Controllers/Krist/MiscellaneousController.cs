@@ -39,12 +39,12 @@ public class MiscellaneousController(WalletRepository walletRepository, MiscRepo
             WalletVersion = miscRepository.GetWalletVersion(),
         };
     }
-    
+
     [HttpGet("whatsnew")]
     public ActionResult<object> WhatsNew()
     {
         // lgtm 👍
-        return new {};
+        return new { };
     }
 
     [HttpGet("supply")]
@@ -56,7 +56,7 @@ public class MiscellaneousController(WalletRepository walletRepository, MiscRepo
             MoneySupply = await walletRepository.GetNetworkSupply(),
         };
     }
-    
+
     [HttpPost("v2")]
     public ActionResult<KristResultV2Address> GetV2Address(KristRequestPrivateKey request)
     {

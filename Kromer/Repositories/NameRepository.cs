@@ -180,12 +180,12 @@ public partial class NameRepository(
         nameEntity.Owner = recipientAddress.Address;
         nameEntity.LastTransfered = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
-        
+
         var transaction = await transactionService.CreateSimpleTransactionAsync(wallet.Address, recipientAddress.Address, 0, TransactionType.NameTransfer);
         transaction.Name = name;
-        
+
         await context.SaveChangesAsync();
-        
+
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
             Name = NameDto.FromEntity(nameEntity),
@@ -221,14 +221,14 @@ public partial class NameRepository(
         nameEntity.Metadata = metadata;
         nameEntity.LastUpdated = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
-        
+
         await context.SaveChangesAsync();
-        
+
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
             Name = NameDto.FromEntity(nameEntity),
         });
-        
+
         return NameDto.FromEntity(nameEntity);
     }
 }

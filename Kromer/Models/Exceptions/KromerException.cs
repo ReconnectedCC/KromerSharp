@@ -20,7 +20,7 @@ public class KromerException : Exception
     {
         return SnakeCaseNamingPolicy.Convert(Enum.GetName(code) ?? code.ToString());
     }
-    
+
     public HttpStatusCode GetStatusCode()
     {
         var statusCode = Code.GetType()

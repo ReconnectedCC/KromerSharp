@@ -13,7 +13,7 @@ public class AddressDto
     public decimal TotalOut { get; set; }
 
     public DateTime FirstSeen { get; set; }
-    
+
     public int? Names { get; set; }
 
     public static AddressDto FromEntity(WalletEntity wallet)

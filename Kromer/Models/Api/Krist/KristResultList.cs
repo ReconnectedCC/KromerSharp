@@ -6,7 +6,7 @@ public class KristResultList : KristResult
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Count { get; set; }
-    
+
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? Total { get; set; }
 }

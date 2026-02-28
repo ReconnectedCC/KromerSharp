@@ -45,7 +45,7 @@ public class TransactionsController(TransactionRepository transactionRepository,
             Transactions = transactions
         };
     }
-    
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<KristResultTransaction>> GetLatestTransactions(int id)
     {
@@ -58,7 +58,7 @@ public class TransactionsController(TransactionRepository transactionRepository,
             Transaction = transaction,
         };
     }
-    
+
     [HttpPost("")]
     public async Task<ActionResult<KristResultTransaction>> CreateTransaction(KristRequestTransaction request)
     {

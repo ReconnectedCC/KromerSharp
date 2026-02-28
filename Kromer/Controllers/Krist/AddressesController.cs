@@ -80,7 +80,7 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
-        
+
         var total = await transactionRepository.CountAddressTransactionsAsync(address, excludeMined);
         var transactions =
             await transactionRepository.GetAddressRecentTransactionsAsync(address, limit, offset, excludeMined);
@@ -103,7 +103,7 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
-        
+
         limit = Math.Clamp(limit, 1, 1000);
 
         var total = await nameRepository.CountAddressNamesAsync(address);
