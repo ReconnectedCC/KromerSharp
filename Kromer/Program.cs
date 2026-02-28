@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using Kromer;
 using Kromer.Data;
 using Kromer.Models.Api.Krist;
@@ -6,6 +7,8 @@ using Kromer.Models.Api.V1;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Kromer.Repositories;
+using Kromer.Services;
+using Kromer.SessionManager;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +28,13 @@ builder.Services.AddScoped<MiscRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 
 builder.Services.AddScoped<TransactionService>();
+builder.Services.AddScoped<SessionService>();
+
+builder.Services.AddSingleton<SessionManager>();
+builder.Services.AddSingleton(Channel.CreateUnbounded<KristEvent>());
+
+builder.Services.AddHostedService<EventDispatcher>();
+builder.Services.AddHostedService<BackgroundSessionJob>();
 
 // Support for reverse proxies, like NGINX
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.All; });
@@ -53,6 +63,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseWebSockets();
 
 app.MapControllers();
 

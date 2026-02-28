@@ -3,7 +3,7 @@ using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
-namespace Kromer.Repositories;
+namespace Kromer.Services;
 
 public class TransactionService(KromerContext context, ILogger<TransactionService> logger)
 {

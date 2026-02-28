@@ -53,4 +53,8 @@ public enum ErrorCode
     [Description("Player was not found")]
     [StatusCode(HttpStatusCode.NotFound)]
     PlayerError,
+    
+    [Description("Invalid websocket token")]
+    [StatusCode(HttpStatusCode.Unauthorized)]
+    InvalidWebsocketToken
 }
