@@ -1,4 +1,3 @@
-using Kromer.Models.Api.Krist;
 using Kromer.Models.Api.Krist.Misc;
 using Kromer.Models.Api.Krist.Wallet;
 using Kromer.Repositories;

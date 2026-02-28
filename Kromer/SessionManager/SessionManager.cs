@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Humanizer;
+using Kromer.Models.Api.Krist.Misc;
 using Kromer.Models.Dto;
 using Kromer.Models.Exceptions;
 using Kromer.Models.WebSocket;
@@ -131,48 +132,59 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
 
     public async Task HandleWebSocketSessionAsync(Session session)
     {
-        var websocket = session.WebSocket;
-
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var miscRepository = scope.ServiceProvider.GetRequiredService<MiscRepository>();
-        await session.SendAsync(new KristHelloPacket
+        try
         {
-            Motd = "Welcome to Kromer.",
-            Set = DateTime.UtcNow,
-            MotdSet = DateTime.UtcNow,
-            PublicUrl = miscRepository.GetPublicUrl(),
-            PublicWsUrl = miscRepository.GetPublicWsUrl(),
-        });
+            var websocket = session.WebSocket;
 
-        var buffer = new byte[4096];
-        var message = new StringBuilder();
-        while (websocket?.State == WebSocketState.Open)
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var miscRepository = scope.ServiceProvider.GetRequiredService<MiscRepository>();
+            await session.SendAsync(new KristHelloPacket
+            {
+                Motd = "Welcome to Kromer.",
+                Set = DateTime.UtcNow,
+                MotdSet = DateTime.UtcNow,
+                PublicUrl = miscRepository.GetPublicUrl(),
+                PublicWsUrl = miscRepository.GetPublicWsUrl(),
+                Constants = new KristMotdResponse.MotdConstants
+                {
+                    NameCost = miscRepository.GetNameCost(),
+                }
+            });
+
+            var buffer = new byte[4096];
+            var message = new StringBuilder();
+            while (websocket?.State == WebSocketState.Open)
+            {
+                var receiveResult = await websocket.ReceiveAsync(buffer, CancellationToken.None);
+                if (receiveResult.MessageType == WebSocketMessageType.Text)
+                {
+                    message.Append(Encoding.UTF8.GetString(buffer, 0, receiveResult.Count));
+                }
+                else if (receiveResult.MessageType == WebSocketMessageType.Close)
+                {
+                    logger.LogInformation("WebSocket session {SessionId} closing", session.Id);
+
+                    session.Connected = false;
+                    _sessions.TryRemove(session.Id, out _);
+                    await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Session closed",
+                        CancellationToken.None);
+
+                    logger.LogInformation("WebSocket session {SessionId} closed", session.Id);
+                    break;
+                }
+
+                if (receiveResult.EndOfMessage)
+                {
+                    var data = message.ToString();
+                    message.Clear();
+
+                    await ProcessClientMessageAsync(session, data);
+                }
+            }
+        }
+        catch (Exception ex)
         {
-            var receiveResult = await websocket.ReceiveAsync(buffer, CancellationToken.None);
-            if (receiveResult.MessageType == WebSocketMessageType.Text)
-            {
-                message.Append(Encoding.UTF8.GetString(buffer, 0, receiveResult.Count));
-            }
-            else if (receiveResult.MessageType == WebSocketMessageType.Close)
-            {
-                logger.LogInformation("WebSocket session {SessionId} closing", session.Id);
-
-                session.Connected = false;
-                _sessions.TryRemove(session.Id, out _);
-                await websocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Session closed",
-                    CancellationToken.None);
-
-                logger.LogInformation("WebSocket session {SessionId} closed", session.Id);
-                break;
-            }
-
-            if (receiveResult.EndOfMessage)
-            {
-                var data = message.ToString();
-                message.Clear();
-
-                await ProcessClientMessageAsync(session, data);
-            }
+            logger.LogError(ex, "Error handling WebSocket session {SessionId}", session.Id);
         }
     }
 

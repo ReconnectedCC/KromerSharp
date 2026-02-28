@@ -25,8 +25,16 @@ public class MiscRepository(IConfiguration configuration)
             MotdSet = DateTime.UtcNow,
             PublicUrl = GetPublicUrl(),
             PublicWsUrl = GetPublicWsUrl(),
-
+            Constants = new KristMotdResponse.MotdConstants
+            {
+                NameCost = GetNameCost(),
+            }
         };
+    }
+
+    public int GetNameCost()
+    {
+        return configuration.GetValue("NameCost", 500);
     }
 
     public int GetWalletVersion()
