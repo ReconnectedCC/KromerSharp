@@ -18,8 +18,7 @@ public partial class TransactionRepository(
     private IQueryable<TransactionEntity> PrepareAddressTransactions(string address, bool excludeMined = false)
     {
         var query = context.Transactions
-            .Where(q => (q.From != null && EF.Functions.ILike(q.From, address))
-                        || EF.Functions.ILike(q.To, address));
+            .Where(q => q.From == address || q.To == address);
 
         if (excludeMined)
         {

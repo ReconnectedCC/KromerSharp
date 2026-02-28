@@ -25,7 +25,7 @@ public partial class NameRepository(
     public async Task<IList<NameDto>> GetAddressNamesAsync(string address, int limit = 50, int offset = 0)
     {
         var names = await context.Names
-            .Where(q => EF.Functions.ILike(q.Owner, address))
+            .Where(q => q.Owner == address)
             .Skip(offset)
             .Take(limit)
             .ToListAsync();
@@ -35,13 +35,13 @@ public partial class NameRepository(
 
     public async Task<int> CountAddressNamesAsync(string address)
     {
-        return await context.Names.CountAsync(q => EF.Functions.ILike(q.Owner, address));
+        return await context.Names.CountAsync(q => q.Owner == address);
     }
 
     public async Task<NameDto?> GetNameAsync(string name)
     {
         var nameEntity = await context.Names
-            .FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+            .FirstOrDefaultAsync(q => q.Name == name);
 
         return nameEntity == null
             ? null
@@ -82,7 +82,7 @@ public partial class NameRepository(
 
     public async Task<bool> ExistsAsync(string name)
     {
-        return await context.Names.AnyAsync(q => EF.Functions.ILike(q.Name, name));
+        return await context.Names.AnyAsync(q => q.Name == name);
     }
 
     public async Task<int> CountUnpaidAsync()
@@ -148,7 +148,7 @@ public partial class NameRepository(
             throw new KristParameterException("name");
         }
 
-        var nameEntity = await context.Names.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+        var nameEntity = await context.Names.FirstOrDefaultAsync(q => q.Name == name);
         if (nameEntity is null)
         {
             throw new KristException(ErrorCode.NameNotFound);
@@ -201,7 +201,7 @@ public partial class NameRepository(
             throw new KristParameterException("name");
         }
 
-        var nameEntity = await context.Names.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Name, name));
+        var nameEntity = await context.Names.FirstOrDefaultAsync(q => q.Name == name);
         if (nameEntity is null)
         {
             throw new KristException(ErrorCode.NameNotFound);

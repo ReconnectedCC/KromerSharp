@@ -1,5 +1,3 @@
-using Kromer.Models.Api;
-using Kromer.Models.Api.Krist;
 using Kromer.Models.Api.Krist.Address;
 using Kromer.Models.Api.Krist.Name;
 using Kromer.Models.Api.Krist.Transaction;

@@ -2,6 +2,7 @@
 using Kromer.Models;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
+using Kromer.Services;
 using Kromer.Utils;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
 {
     public Task<bool> ExistsAsync(string address)
     {
-        return context.Wallets.AnyAsync(q => EF.Functions.ILike(q.Address, address));
+        return context.Wallets.AnyAsync(q => q.Address == address);
     }
 
     public async Task<IList<WalletDto>> GetPlayerWalletsAsync(Guid uuid)
@@ -28,7 +29,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
     public async Task<IList<WalletDto>> GetPlayerWalletsAsync(string name)
     {
         var wallets = await context.Players
-            .Where(p => EF.Functions.ILike(p.Name, name))
+            .Where(p => p.Name == name)
             .SelectMany(p => context.Wallets
                 .Where(w => p.OwnedWallets != null && p.OwnedWallets.Contains(w.Id)))
             .ToListAsync();
@@ -65,7 +66,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
 
     public async Task<AddressDto?> GetAddressAsync(string address, bool fetchNames = false)
     {
-        var wallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, address));
+        var wallet = await context.Wallets.FirstOrDefaultAsync(q => q.Address == address);
         if (wallet is null)
         {
             return null;
@@ -74,7 +75,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
         int? names = null;
         if (fetchNames)
         {
-            names = await context.Names.CountAsync(q => EF.Functions.ILike(q.Owner, address));
+            names = await context.Names.CountAsync(q => q.Owner == address);
         }
 
         var addressDto = AddressDto.FromEntity(wallet);
@@ -85,7 +86,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
 
     public async Task<WalletEntity> GetOrCreateWalletAsync(string address, string hash, decimal initialBalance = 0)
     {
-        var wallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, address));
+        var wallet = await context.Wallets.FirstOrDefaultAsync(q => q.Address == address);
 
         if (wallet is not null)
         {
@@ -129,7 +130,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
 
     public async Task<WalletEntity?> GetWalletFromAddress(string address)
     {
-        var wallet = await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, address));
+        var wallet = await context.Wallets.FirstOrDefaultAsync(q => q.Address == address);
 
         return wallet;
     }
@@ -149,7 +150,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
     public async Task<decimal> GetNetworkSupply()
     {
         return await context.Wallets
-            .Where(q => !EF.Functions.ILike(q.Address, "serverwelf"))
+            .Where(q => q.Address != TransactionService.ServerWallet)
             .SumAsync(q => q.Balance);
     }
 }

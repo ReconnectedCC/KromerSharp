@@ -31,6 +31,7 @@ builder.Services.AddScoped<PlayerRepository>();
 
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<SessionService>();
+builder.Services.AddScoped<LookupService>();
 
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddSingleton(Channel.CreateUnbounded<IKristEvent>());

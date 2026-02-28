@@ -65,10 +65,10 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
         }
 
         var senderWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.From));
+            await context.Wallets.FirstOrDefaultAsync(q => q.Address == transaction.From);
 
         var recipientWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => EF.Functions.ILike(q.Address, transaction.To));
+            await context.Wallets.FirstOrDefaultAsync(q => q.Address == transaction.To);
 
         if (senderWallet is null || recipientWallet is null)
         {
