@@ -29,7 +29,13 @@ public class IgnoreContentTypeJsonInputFormatter : TextInputFormatter
 
         var body = await reader.ReadToEndAsync();
 
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return await InputFormatterResult.SuccessAsync(null);
+        }
+        
         var result = JsonSerializer.Deserialize(body, context.ModelType, _options);
+
         return await InputFormatterResult.SuccessAsync(result);
     }
 }
