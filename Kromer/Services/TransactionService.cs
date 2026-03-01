@@ -53,7 +53,7 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
             throw new KristException(ErrorCode.InvalidAmount);
         }
 
-        transaction.Amount = Math.Round(transaction.Amount, 2, MidpointRounding.ToZero);
+        transaction.Amount = Math.Round(transaction.Amount, 5, MidpointRounding.ToEven);
 
         if (string.IsNullOrWhiteSpace(transaction.From))
         {

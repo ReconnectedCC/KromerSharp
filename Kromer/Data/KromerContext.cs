@@ -57,7 +57,7 @@ public partial class KromerContext : DbContext
                 .HasColumnName("owner");
             entity.Property(e => e.TimeRegistered).HasColumnName("time_registered");
             entity.Property(e => e.Unpaid)
-                .HasPrecision(16, 2)
+                .HasPrecision(16, 5)
                 .HasColumnName("unpaid");
         });
 
@@ -86,7 +86,7 @@ public partial class KromerContext : DbContext
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Amount)
-                .HasPrecision(16, 2)
+                .HasPrecision(16, 5)
                 .HasColumnName("amount");
             entity.Property(e => e.Date).HasColumnName("date");
             entity.Property(e => e.From)
@@ -128,7 +128,7 @@ public partial class KromerContext : DbContext
                 .IsFixedLength()
                 .HasColumnName("address");
             entity.Property(e => e.Balance)
-                .HasPrecision(16, 2)
+                .HasPrecision(16, 5)
                 .HasColumnName("balance");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.Locked)
@@ -138,10 +138,10 @@ public partial class KromerContext : DbContext
                 .HasMaxLength(64)
                 .HasColumnName("private_key");
             entity.Property(e => e.TotalIn)
-                .HasPrecision(16, 2)
+                .HasPrecision(16, 5)
                 .HasColumnName("total_in");
             entity.Property(e => e.TotalOut)
-                .HasPrecision(16, 2)
+                .HasPrecision(16, 5)
                 .HasColumnName("total_out");
         });
 
