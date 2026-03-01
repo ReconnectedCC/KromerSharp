@@ -127,7 +127,20 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
             .Select(x => x.Value);
         var pingPacket = new KristKeepAlivePacket();
 
-        await Parallel.ForEachAsync(clients, async (session, token) => { await session.SendAsync(pingPacket, token); });
+        await Parallel.ForEachAsync(clients, async (session, token) =>
+        {
+            if (session.WebSocket?.State == WebSocketState.Open)
+            {
+                try
+                {
+                    await session.SendAsync(pingPacket, token);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error sending ping to session {SessionId}", session.Id);
+                }
+            }
+        });
     }
 
     public async Task HandleWebSocketSessionAsync(Session session)
