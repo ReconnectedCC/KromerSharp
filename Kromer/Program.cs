@@ -83,56 +83,64 @@ app.UseExceptionHandler(builder =>
 {
     builder.Run(async context =>
     {
-        var exception = context.Features
-            .Get<IExceptionHandlerFeature>()?
-            .Error;
-
-        if (exception is KristException kristException)
+        try
         {
-            var error = new KristResult
-            {
-                Ok = false,
-                Error = kristException.Error,
-                Message = kristException.Message,
-            };
+            var exception = context.Features
+                .Get<IExceptionHandlerFeature>()?
+                .Error;
 
-            if (exception is KristParameterException parameterException)
+            if (exception is KristException kristException)
             {
-                error.Parameter = parameterException.Parameter;
+                var error = new KristResult
+                {
+                    Ok = false,
+                    Error = kristException.Error,
+                    Message = kristException.Message,
+                };
+
+                if (exception is KristParameterException parameterException)
+                {
+                    error.Parameter = parameterException.Parameter;
+                }
+
+                context.Response.StatusCode = (int)kristException.GetStatusCode();
+                context.Response.ContentType = "application/json";
+
+                await context.Response.WriteAsJsonAsync(error);
+
+                return;
+            }
+            else if (exception is KromerException kromerException)
+            {
+                var result = Result<object>.Throw(new Error
+                {
+                    Code = kromerException.Error,
+                    Message = kromerException.Message,
+                    Details = Array.Empty<object>(),
+                });
+
+                context.Response.StatusCode = (int)kromerException.GetStatusCode();
+                context.Response.ContentType = "application/json";
+
+                await context.Response.WriteAsJsonAsync(result);
+
+                return;
             }
 
-            context.Response.StatusCode = (int)kristException.GetStatusCode();
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
 
-            await context.Response.WriteAsJsonAsync(error);
-
-            return;
-        }
-        else if (exception is KromerException kromerException)
-        {
-            var result = Result<object>.Throw(new Error
+            await context.Response.WriteAsJsonAsync(new KristResult
             {
-                Code = kromerException.Error,
-                Message = kromerException.Message,
-                Details = Array.Empty<object>(),
+                Ok = false,
+                Error = "internal_server_error",
             });
-
-            context.Response.StatusCode = (int)kromerException.GetStatusCode();
-            context.Response.ContentType = "application/json";
-
-            await context.Response.WriteAsJsonAsync(result);
-
-            return;
         }
-
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/json";
-
-        await context.Response.WriteAsJsonAsync(new KristResult
+        catch (Exception ex)
         {
-            Ok = false,
-            Error = "internal_server_error",
-        });
+            // When in doubt...
+            app.Logger.LogError(ex, "Error processing request");
+        }
     });
 });
 

@@ -39,6 +39,6 @@ public class WebSocketController(SessionService sessionService, SessionManager.S
         session.WebSocket = webSocket;
         await sessionManager.HandleWebSocketSessionAsync(session);
 
-        return Ok();
+        return new EmptyResult();
     }
 }
