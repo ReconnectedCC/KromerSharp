@@ -124,6 +124,8 @@ public partial class TransactionRepository(
         {
             throw new KristException(ErrorCode.AuthenticationFailed);
         }
+        
+        amount = decimal.Round(amount, 2, MidpointRounding.ToEven);
 
         if (amount > wallet.Balance)
         {
