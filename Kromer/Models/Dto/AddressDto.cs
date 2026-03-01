@@ -1,4 +1,5 @@
-﻿using Kromer.Models.Entities;
+﻿using System.Text.Json.Serialization;
+using Kromer.Models.Entities;
 
 namespace Kromer.Models.Dto;
 
@@ -8,10 +9,13 @@ public class AddressDto
 
     public decimal Balance { get; set; }
 
+    [JsonPropertyName("totalin")]
     public decimal TotalIn { get; set; }
 
+    [JsonPropertyName("totalout")] 
     public decimal TotalOut { get; set; }
 
+    [JsonPropertyName("firstseen")]
     public DateTime FirstSeen { get; set; }
 
     public int? Names { get; set; }
