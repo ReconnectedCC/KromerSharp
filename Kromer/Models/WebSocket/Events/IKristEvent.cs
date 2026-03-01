@@ -2,6 +2,6 @@ namespace Kromer.Models.WebSocket.Events;
 
 public interface IKristEvent
 {
-    public string Type => "event";
+    public string Type { get; }
     public string Event { get; }
 }
