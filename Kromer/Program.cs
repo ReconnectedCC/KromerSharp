@@ -54,7 +54,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers(options =>
     {
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        
+
         options.InputFormatters.Add(new IgnoreContentTypeJsonInputFormatter(jsonOptions));
     })
     .AddJsonOptions(options =>
@@ -67,6 +67,8 @@ builder.Services.AddControllers(options =>
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddEndpointsApiExplorer();
+
 var app = builder.Build();
 
 app.UseForwardedHeaders();
@@ -77,6 +79,21 @@ app.MapOpenApi(pattern: "/openapi/v1.json");
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.Use(async (context, next) =>
+{
+    var extra = new List<string>();
+    if (context.Request.Headers.TryGetValue("X-Cc-Id", out var computercraftId))
+    {
+        extra.Add($"(ComputerCraft ID: {computercraftId})");
+    }
+
+    app.Logger.LogInformation("{IpAddress} {Method} {Path}{QueryString} '{UserAgent}' {Extra}",
+        context.Connection.RemoteIpAddress, context.Request.Method, context.Request.Path, context.Request.QueryString,
+        context.Request.Headers.UserAgent, string.Join(" ", extra));
+
+    await next();
+});
 
 app.UseWebSockets();
 
