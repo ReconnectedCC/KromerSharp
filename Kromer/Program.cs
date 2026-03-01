@@ -42,6 +42,15 @@ builder.Services.AddHostedService<BackgroundSessionJob>();
 // Support for reverse proxies, like NGINX
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.All; });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(o => o
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+    );
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -67,6 +76,8 @@ app.UseAuthorization();
 app.UseWebSockets();
 
 app.MapControllers();
+
+app.UseCors();
 
 app.UseExceptionHandler(builder =>
 {
