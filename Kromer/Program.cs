@@ -51,7 +51,12 @@ builder.Services.AddCors(options =>
     );
 });
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        
+        options.InputFormatters.Add(new IgnoreContentTypeJsonInputFormatter(jsonOptions));
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = new SnakeCaseNamingPolicy();
