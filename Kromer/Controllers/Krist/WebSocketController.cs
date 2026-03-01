@@ -13,7 +13,7 @@ public class WebSocketController(SessionService sessionService, SessionManager.S
     [HttpPost("start")]
     public async Task<ActionResult<KristResponseWebSocketInitiate>> InitConnection(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)]
-        KristRequestPrivateKey? request = null)
+        KristRequestOptionalPrivateKey? request = null)
     {
         var sessionId = await sessionService.InstantiateSession(request?.PrivateKey);
         var url = $"wss://{HttpContext.Request.Host}/api/krist/ws/gateway/{sessionId}";
