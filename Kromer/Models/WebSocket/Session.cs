@@ -8,7 +8,8 @@ namespace Kromer.Models.WebSocket;
 
 public class Session
 {
-    public const SubscriptionLevel DefaultSubscriptionLevels = SubscriptionLevel.Blocks | SubscriptionLevel.OwnTransactions;
+    public const SubscriptionLevel DefaultSubscriptionLevels =
+        SubscriptionLevel.Blocks | SubscriptionLevel.OwnTransactions;
 
     public Guid Id { get; } = Guid.CreateVersion7();
 
@@ -35,7 +36,8 @@ public class Session
             return;
         }
 
-        var json = JsonSerializer.Serialize(data, data.GetType(), SessionManager.SessionManager.JsonSerializerOptions);
+        var json = JsonSerializer.Serialize(data, data.GetType(),
+            SessionManager.SessionManager.JsonSerializerOptions);
         await WebSocket.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, cancellationToken);
     }
 }
