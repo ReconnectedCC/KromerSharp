@@ -1,19 +1,22 @@
-﻿using Kromer.Data;
+﻿using System.Threading.Channels;
+using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
+using Kromer.Models.WebSocket.Events;
 using Kromer.Services;
 using Kromer.Utils;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Repositories;
 
-public partial class TransactionRepository(
+public class TransactionRepository(
     KromerContext context,
     ILogger<TransactionRepository> logger,
     WalletRepository walletRepository,
     NameRepository nameRepository,
-    TransactionService transactionService)
+    TransactionService transactionService,
+    Channel<IKristEvent> eventChannel)
 {
     private IQueryable<TransactionEntity> PrepareAddressTransactions(string address, bool excludeMined = false)
     {
@@ -174,6 +177,12 @@ public partial class TransactionRepository(
 
         await transactionService.CreateTransactionAsync(transaction);
         await context.SaveChangesAsync();
+        
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
 
         return TransactionDto.FromEntity(transaction);
     }

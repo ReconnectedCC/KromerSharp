@@ -47,7 +47,8 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
     {
         ArgumentNullException.ThrowIfNull(transaction);
 
-        if (transaction.Amount <= 0)
+        // Apply filter to transfer transactions only
+        if (transaction is { Amount: <= 0, TransactionType: TransactionType.Transfer })
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
@@ -94,12 +95,6 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,
             transaction.Metadata);
-
-        // Emit transaction event
-        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
-        {
-            Transaction = TransactionDto.FromEntity(transaction),
-        });
 
         return transaction;
     }

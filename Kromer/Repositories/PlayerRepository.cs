@@ -99,6 +99,12 @@ public class PlayerRepository(
         });
 
         await context.SaveChangesAsync();
+        
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
 
         return new WalletResponse
         {

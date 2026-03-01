@@ -132,6 +132,12 @@ public partial class NameRepository(
 
         await context.Names.AddAsync(nameEntity);
         await context.SaveChangesAsync();
+        
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
 
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
@@ -186,6 +192,12 @@ public partial class NameRepository(
 
         await context.SaveChangesAsync();
 
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
+        
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
             Name = NameDto.FromEntity(nameEntity),
