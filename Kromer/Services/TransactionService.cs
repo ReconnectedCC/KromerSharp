@@ -47,13 +47,12 @@ public class TransactionService(KromerContext context, ILogger<TransactionServic
     {
         ArgumentNullException.ThrowIfNull(transaction);
 
-        // Apply filter to transfer transactions only
-        if (transaction is { Amount: <= 0, TransactionType: TransactionType.Transfer })
+        // Round before we check the amount - do not create empty transactions.
+        transaction.Amount = Math.Round(transaction.Amount, 5, MidpointRounding.ToEven);
+        if (transaction is { Amount: <= 0 })
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
-
-        transaction.Amount = Math.Round(transaction.Amount, 5, MidpointRounding.ToEven);
 
         if (string.IsNullOrWhiteSpace(transaction.From))
         {
