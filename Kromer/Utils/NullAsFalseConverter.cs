@@ -37,3 +37,20 @@ public class NullAsFalseConverterFactory : JsonConverterFactory
         return (JsonConverter)Activator.CreateInstance(converterType)!;
     }
 }
+
+public class NullableIntAsFalseConverter : JsonConverter<int?>
+{
+    public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.TokenType switch
+        {
+            JsonTokenType.False or JsonTokenType.Null => null,
+            JsonTokenType.Number => reader.GetInt32(),
+            _ => throw new JsonException($"Unexpected token {reader.TokenType} for nullable int.")
+        };
+
+    public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteBooleanValue(false);
+        else writer.WriteNumberValue(value.Value);
+    }
+}

@@ -17,15 +17,15 @@ public class KristExtendedSearchResult : KristResult
     public class MatchTransactions
     {
         [JsonPropertyName("addressInvolved")]
-        [JsonConverter(typeof(NullAsFalseConverterFactory))]
+        [JsonConverter(typeof(NullableIntAsFalseConverter))]
         public int? AddressInvolved { get; set; }
         
         [JsonPropertyName("nameInvolved")]
-        [JsonConverter(typeof(NullAsFalseConverterFactory))]
+        [JsonConverter(typeof(NullableIntAsFalseConverter))]
         public int? NameInvolved { get; set; }
         
         [JsonPropertyName("metadata")]
-        [JsonConverter(typeof(NullAsFalseConverterFactory))]
+        [JsonConverter(typeof(NullableIntAsFalseConverter))]
         public int? Metadata { get; set; }
     }
 }
