@@ -8,8 +8,7 @@ namespace Kromer.Models.WebSocket;
 
 public class Session
 {
-    public const SubscriptionLevel DefaultSubscriptionLevels =
-        SubscriptionLevel.Blocks | SubscriptionLevel.OwnTransactions;
+    public const SubscriptionLevel DefaultSubscriptionLevels = SubscriptionLevel.Blocks | SubscriptionLevel.OwnTransactions;
 
     public Guid Id { get; } = Guid.CreateVersion7();
 

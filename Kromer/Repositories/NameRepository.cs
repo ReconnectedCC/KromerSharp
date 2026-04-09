@@ -118,13 +118,6 @@ public partial class NameRepository(
 
         var serverWallet = await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
 
-        var transaction =
-            transactionService.InitiateTransaction(wallet, serverWallet, newNameCost, TransactionType.NamePurchase);
-
-        transaction.Name = name;
-
-        await transactionService.CommitTransactionAsync(wallet, serverWallet, transaction);
-
         logger.LogInformation("Registering name '{Name}' for address {WalletAddress}", name, wallet.Address);
 
         var nameEntity = new NameEntity
@@ -136,7 +129,11 @@ public partial class NameRepository(
         };
 
         await context.Names.AddAsync(nameEntity);
-        await context.SaveChangesAsync();
+
+        var transaction =
+            transactionService.InitiateTransaction(wallet, serverWallet, newNameCost, TransactionType.NamePurchase);
+        transaction.Name = name;
+        await transactionService.CommitTransactionAsync(wallet, serverWallet, transaction);
 
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
@@ -191,7 +188,7 @@ public partial class NameRepository(
         nameEntity.Owner = recipientAddress.Address;
         nameEntity.LastTransfered = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
-        
+
 
         var transaction =
             transactionService.InitiateTransaction(wallet, recipientAddress, 0, TransactionType.NameTransfer);
@@ -243,7 +240,8 @@ public partial class NameRepository(
         nameEntity.LastUpdated = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
 
-        await context.SaveChangesAsync();
+        var transaction = transactionService.InitiateTransaction(wallet, wallet, 0, TransactionType.NameARecord);
+        await transactionService.CommitTransactionAsync(wallet, wallet, transaction);
 
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {

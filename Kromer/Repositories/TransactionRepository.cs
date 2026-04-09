@@ -12,7 +12,6 @@ namespace Kromer.Repositories;
 
 public class TransactionRepository(
     KromerContext context,
-    ILogger<TransactionRepository> logger,
     WalletRepository walletRepository,
     NameRepository nameRepository,
     TransactionService transactionService,

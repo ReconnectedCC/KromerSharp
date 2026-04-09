@@ -1,10 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Threading.Channels;
 using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
-using Kromer.Models.WebSocket.Events;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,8 +10,7 @@ namespace Kromer.Services;
 
 public class TransactionService(
     KromerContext context,
-    ILogger<TransactionService> logger,
-    Channel<IKristEvent> eventChannel)
+    ILogger<TransactionService> logger)
 {
     public const string ServerWallet = "serverwelf";
 
@@ -34,7 +31,7 @@ public class TransactionService(
             throw new KristException(ErrorCode.AddressNotFound);
         }
 
-        if (sender.Address == recipient.Address)
+        if (sender.Address == recipient.Address && transactionType == TransactionType.Transfer)
         {
             throw new KristException(ErrorCode.SameWalletTransfer);
         }

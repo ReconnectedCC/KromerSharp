@@ -44,7 +44,8 @@ public class LookupService(KromerContext context)
         var transactions = context.Transactions.AsQueryable();
         if (addressList.Count > 0)
         {
-            transactions = transactions.Where(q => addressList.Contains(q.To) || addressList.Contains(q.From));
+            transactions = transactions.Where(q =>
+                addressList.Contains(q.To) || (q.From != null && addressList.Contains(q.From)));
         }
 
         if (!includeMined)
@@ -80,7 +81,7 @@ public class LookupService(KromerContext context)
                 _ => throw new ArgumentOutOfRangeException(nameof(orderBy), orderBy, null)
             };
         }
-        
+
         var total = await transactions.CountAsync();
 
         transactions = transactions
@@ -141,7 +142,7 @@ public class LookupService(KromerContext context)
                 _ => throw new ArgumentOutOfRangeException(nameof(orderBy), orderBy, null)
             };
         }
-        
+
         var total = await names.CountAsync();
 
         names = names
@@ -196,7 +197,7 @@ public class LookupService(KromerContext context)
                 _ => throw new ArgumentOutOfRangeException(nameof(orderBy), orderBy, null)
             };
         }
-        
+
         var total = await transactions.CountAsync();
 
         transactions = transactions
@@ -214,7 +215,8 @@ public class LookupService(KromerContext context)
         };
     }
 
-    public async Task<ActionResult<KristResultTransactions>> GetNameTransactions(string name, TransactionOrderByParameter orderBy, OrderParameter order, int limit, int offset)
+    public async Task<ActionResult<KristResultTransactions>> GetNameTransactions(string name,
+        TransactionOrderByParameter orderBy, OrderParameter order, int limit, int offset)
     {
         var transactions = context.Transactions
             .Where(q => q.SentName == name);
@@ -247,7 +249,7 @@ public class LookupService(KromerContext context)
                 _ => throw new ArgumentOutOfRangeException(nameof(orderBy), orderBy, null)
             };
         }
-        
+
         var total = await transactions.CountAsync();
 
         transactions = transactions

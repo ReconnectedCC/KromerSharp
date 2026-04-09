@@ -12,7 +12,7 @@ public class Result<T>
     {
     }
 
-    public Result(T data)
+    public Result(T? data)
     {
         Data = data;
     }

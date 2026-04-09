@@ -14,7 +14,6 @@ namespace Kromer.Repositories;
 
 public class PlayerRepository(
     KromerContext context,
-    ILogger<PlayerRepository> logger,
     WalletRepository walletRepository,
     IConfiguration configuration,
     TransactionService transactionService,

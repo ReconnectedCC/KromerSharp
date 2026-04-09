@@ -1,7 +1,5 @@
-﻿using System.Threading.Channels;
-using Kromer.Models.Exceptions;
+﻿using Kromer.Models.Exceptions;
 using Kromer.Models.WebSocket;
-using Kromer.Models.WebSocket.Events;
 using Kromer.Repositories;
 
 namespace Kromer.Services;
@@ -9,7 +7,6 @@ namespace Kromer.Services;
 public class SessionService(
     SessionManager.SessionManager sessionManager,
     WalletRepository walletRepository,
-    Channel<IKristEvent> channel,
     ILogger<SessionService> logger)
 {
     public async Task<Guid> InstantiateSession(string? privateKey = null)

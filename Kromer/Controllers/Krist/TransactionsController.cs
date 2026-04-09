@@ -7,7 +7,7 @@ namespace Kromer.Controllers.Krist;
 
 [Route("api/krist/transactions")]
 [ApiController]
-public class TransactionsController(TransactionRepository transactionRepository, WalletRepository walletRepository)
+public class TransactionsController(TransactionRepository transactionRepository)
     : ControllerBase
 {
     /// <summary>
