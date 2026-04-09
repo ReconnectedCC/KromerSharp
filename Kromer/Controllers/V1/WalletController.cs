@@ -8,7 +8,7 @@ namespace Kromer.Controllers.V1;
 
 [Route("api/v1/[controller]")]
 [ApiController]
-public class WalletController(WalletRepository walletRepository) : ControllerBase
+public class WalletController(WalletRepository walletRepository, PlayerRepository playerRepository) : ControllerBase
 {
     /// <summary>
     /// Retrieves the wallets associated with a specific player name.
@@ -65,6 +65,19 @@ public class WalletController(WalletRepository walletRepository) : ControllerBas
             Data = playerWallets,
         };
 
+        return response;
+    }
+    
+    [HttpGet("players")]
+    public async Task<ActionResult<ResultList<PlayerDto>>> GetPlayers()
+    {
+        var players = await playerRepository.GetPlayersAsync();
+        
+        var response = new ResultList<PlayerDto>
+        {
+            Data = players,
+        };
+        
         return response;
     }
 }

@@ -82,7 +82,7 @@ public class PlayerRepository(
 
     public async Task<WalletResponse> GiveMoneyAsync(string address, decimal amount)
     {
-        var sender =  await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
+        var sender = await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
         var recipient = await walletRepository.GetWalletFromAddress(address);
 
         var transaction = transactionService.InitiateTransaction(sender, recipient, amount, TransactionType.Mined);
@@ -123,8 +123,37 @@ public class PlayerRepository(
         {
             throw new KromerException(ErrorCode.PlayerError);
         }
-        
+
         player.Name = username;
         await context.SaveChangesAsync();
+    }
+
+    public async Task<List<PlayerDto>> GetPlayersAsync()
+    {
+        var playerEntities = await context.Players.ToListAsync();
+
+        var allOwnedWalletIds = playerEntities
+            .Where(p => p.OwnedWallets != null)
+            .SelectMany(p => p.OwnedWallets ?? [])
+            .Distinct()
+            .ToList();
+
+        var walletEntities = await context.Wallets
+            .Where(w => allOwnedWalletIds.Contains(w.Id))
+            .ToListAsync();
+
+        var players = playerEntities.Select(player => new PlayerDto
+            {
+                Uuid = player.Id,
+                Username = player.Name,
+                Wallets = walletEntities
+                    .Where(w => player.OwnedWallets?.Contains(w.Id) == true)
+                    .Select(w => w.Address)
+                    .ToList(),
+            })
+            .OrderBy(p => p.Uuid)
+            .ToList();
+        
+        return players;
     }
 }
