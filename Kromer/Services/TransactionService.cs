@@ -1,95 +1,87 @@
-﻿using System.Threading.Channels;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Threading.Channels;
 using Kromer.Data;
 using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
 using Kromer.Models.WebSocket.Events;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Services;
 
-public class TransactionService(KromerContext context, ILogger<TransactionService> logger, Channel<IKristEvent> eventChannel)
+public class TransactionService(
+    KromerContext context,
+    ILogger<TransactionService> logger,
+    Channel<IKristEvent> eventChannel)
 {
     public const string ServerWallet = "serverwelf";
 
     /// <summary>
-    /// Create and track a new simple transaction and update the relevant wallets. Changes are not committed to the database.
-    /// This method does not validate balance.
+    /// 
     /// </summary>
-    /// <param name="from">Sender address.</param>
-    /// <param name="to">Recipient address.</param>
-    /// <param name="amount">Transaction amount.</param>
-    /// <param name="transactionType">Type of transaction.</param>
-    /// <returns>Tracked transaction entity.</returns>
-    public async Task<TransactionEntity> CreateSimpleTransactionAsync(string from, string to, decimal amount,
-        TransactionType transactionType)
+    /// <param name="sender"></param>
+    /// <param name="recipient"></param>
+    /// <param name="amount"></param>
+    /// <param name="transactionType"></param>
+    /// <returns></returns>
+    /// <exception cref="KristException"></exception>
+    public TransactionEntity InitiateTransaction([NotNull] WalletEntity? sender, [NotNull] WalletEntity? recipient, decimal amount = 0,
+        TransactionType transactionType = TransactionType.Transfer)
     {
-        var transaction = new TransactionEntity
-        {
-            From = from,
-            To = to,
-            Amount = amount,
-            TransactionType = transactionType,
-
-            Date = DateTime.UtcNow,
-        };
-
-        return await CreateTransactionAsync(transaction);
-    }
-
-    /// <summary>
-    /// Create and track a new transaction and update the relevant wallets. Changes are not committed to the database.
-    /// This method does not validate balance.
-    /// </summary>
-    /// <param name="transaction">Transaction entity.</param>
-    /// <returns>Tracked transaction entity.</returns>
-    public async Task<TransactionEntity> CreateTransactionAsync(TransactionEntity transaction)
-    {
-        ArgumentNullException.ThrowIfNull(transaction);
-
-        // Round before we check the amount - do not create empty transactions.
-        transaction.Amount = Math.Round(transaction.Amount, 5, MidpointRounding.ToEven);
-        if (transaction is { Amount: <= 0, TransactionType: TransactionType.Transfer })
-        {
-            throw new KristException(ErrorCode.InvalidAmount);
-        }
-
-        if (string.IsNullOrWhiteSpace(transaction.From))
-        {
-            transaction.From = ServerWallet;
-        }
-
-        if (string.IsNullOrWhiteSpace(transaction.To))
-        {
-            transaction.To = ServerWallet;
-        }
-
-        var senderWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => q.Address == transaction.From);
-
-        var recipientWallet =
-            await context.Wallets.FirstOrDefaultAsync(q => q.Address == transaction.To);
-
-        if (senderWallet is null || recipientWallet is null)
+        if (sender is null || recipient is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
 
-        // Sanitize names?
-        transaction.From = senderWallet.Address;
-        transaction.To = recipientWallet.Address;
-
-        // Apply balance updates
-        if (senderWallet.Address != ServerWallet)
+        if (sender.Address == recipient.Address)
         {
-            senderWallet.Balance -= transaction.Amount;
+            throw new KristException(ErrorCode.SameWalletTransfer);
         }
 
-        recipientWallet.Balance += transaction.Amount;
+        amount = decimal.Round(amount, 5, MidpointRounding.ToEven);
+        if (amount == 0 && transactionType == TransactionType.Transfer)
+        {
+            throw new KristException(ErrorCode.InvalidAmount);
+        }
 
+        if (sender.Balance < amount)
+        {
+            throw new KristException(ErrorCode.InsufficientFunds);
+        }
+
+        if (sender.Address != ServerWallet)
+        {
+            sender.Balance -= amount;
+        }
+
+        recipient.Balance += amount;
+
+        sender.TotalOut += amount;
+        recipient.TotalIn += amount;
+
+        return new TransactionEntity
+        {
+            From = sender.Address,
+            To = recipient.Address,
+            Amount = amount,
+            TransactionType = transactionType,
+            Date = DateTime.UtcNow,
+        };
+    }
+
+    public async Task<TransactionEntity> CommitTransactionAsync(WalletEntity sender, WalletEntity recipient,
+        TransactionEntity transaction)
+    {
+        ArgumentNullException.ThrowIfNull(sender);
+        ArgumentNullException.ThrowIfNull(recipient);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        context.Wallets.Update(sender);
+        context.Wallets.Update(recipient);
         await context.Transactions.AddAsync(transaction);
-        context.Entry(senderWallet).State = EntityState.Modified;
-        context.Entry(recipientWallet).State = EntityState.Modified;
+
+        await context.SaveChangesAsync();
 
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,

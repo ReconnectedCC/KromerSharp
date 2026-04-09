@@ -58,14 +58,6 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
         }
     }
 
-    private static void Assert(string name, decimal value)
-    {
-        if (value <= 0)
-        {
-            throw new KristParameterException(name);
-        }
-    }
-
     private static List<string> GetSubscriptionLevels(SubscriptionLevel subscriptionLevels)
     {
         var levels = Enum.GetValues<SubscriptionLevel>()

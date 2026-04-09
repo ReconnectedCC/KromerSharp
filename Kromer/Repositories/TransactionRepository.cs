@@ -112,26 +112,15 @@ public class TransactionRepository(
     public async Task<TransactionDto> RequestCreateTransaction(string privateKey, string to, decimal amount,
         string? metadata = null)
     {
-        amount = decimal.Round(amount, 5, MidpointRounding.ToEven);
-        if (amount <= 0)
-        {
-            throw new KristException(ErrorCode.InvalidAmount);
-        }
-
         if (string.IsNullOrEmpty(to) || to.Length > 64)
         {
             throw new KristParameterException("to");
         }
-
-        var wallet = await walletRepository.GetWalletFromKeyAsync(privateKey);
-        if (wallet is null)
+        
+        var sender = await walletRepository.GetWalletFromKeyAsync(privateKey);
+        if (sender is null)
         {
             throw new KristException(ErrorCode.AuthenticationFailed);
-        }
-
-        if (amount > wallet.Balance)
-        {
-            throw new KristException(ErrorCode.InsufficientFunds);
         }
 
         var nameData = Validation.ParseMetaName(to);
@@ -152,31 +141,15 @@ public class TransactionRepository(
         }
 
         var recipient = await walletRepository.GetWalletFromAddress(recipientAddress);
-        if (recipient is null)
-        {
-            throw new KristException(ErrorCode.AddressNotFound);
-        }
 
-        if (recipient.Address == wallet.Address)
-        {
-            throw new KristException(ErrorCode.SameWalletTransfer);
-        }
+        var transaction = transactionService.InitiateTransaction(sender, recipient, amount);
 
-        var transaction = new TransactionEntity
-        {
-            Amount = amount,
-            From = wallet.Address,
-            To = recipient.Address,
-            Metadata = metadata,
-            SentName = nameData.Valid ? nameData.Name : null,
-            SentMetaname = nameData.Valid && !string.IsNullOrWhiteSpace(nameData.Meta) ? nameData.Meta : null,
-            Date = DateTime.UtcNow,
-            TransactionType = TransactionType.Transfer,
-        };
-
-        await transactionService.CreateTransactionAsync(transaction);
-        await context.SaveChangesAsync();
+        transaction.Metadata = metadata;
+        transaction.SentName = nameData.Valid ? nameData.Name : null;
+        transaction.SentMetaname = nameData.Valid && !string.IsNullOrWhiteSpace(nameData.Meta) ? nameData.Meta : null;
         
+        await transactionService.CommitTransactionAsync(sender, recipient, transaction);
+
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {

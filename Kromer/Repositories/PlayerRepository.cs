@@ -83,23 +83,12 @@ public class PlayerRepository(
 
     public async Task<WalletResponse> GiveMoneyAsync(string address, decimal amount)
     {
-        var wallet = await walletRepository.GetWalletFromAddress(address);
-        if (wallet is null)
-        {
-            throw new KristException(ErrorCode.AddressNotFound);
-        }
+        var sender = await walletRepository.GetWalletFromAddress(address);
+        var recipient =  await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
 
-        var transaction = await transactionService.CreateTransactionAsync(new TransactionEntity()
-        {
-            Amount = amount,
-            From = TransactionService.ServerWallet,
-            To = address,
-            TransactionType = TransactionType.Mined,
-            Date = DateTime.UtcNow,
-        });
+        var transaction = transactionService.InitiateTransaction(sender, recipient, amount, TransactionType.Mined);
+        await transactionService.CommitTransactionAsync(sender, recipient, transaction);
 
-        await context.SaveChangesAsync();
-        
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {
@@ -108,7 +97,7 @@ public class PlayerRepository(
 
         return new WalletResponse
         {
-            Wallet = WalletDto.FromEntity(wallet),
+            Wallet = WalletDto.FromEntity(sender),
         };
     }
 

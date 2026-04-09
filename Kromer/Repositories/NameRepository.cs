@@ -116,9 +116,14 @@ public partial class NameRepository(
 
         name = Validation.SanitizeName(name);
 
+        var serverWallet = await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
 
-        var transaction = await transactionService.CreateSimpleTransactionAsync(wallet.Address, TransactionService.ServerWallet,
-            newNameCost, TransactionType.NamePurchase);
+        var transaction =
+            transactionService.InitiateTransaction(wallet, serverWallet, newNameCost, TransactionType.NamePurchase);
+
+        transaction.Name = name;
+
+        await transactionService.CommitTransactionAsync(wallet, serverWallet, transaction);
 
         logger.LogInformation("Registering name '{Name}' for address {WalletAddress}", name, wallet.Address);
 
@@ -132,7 +137,7 @@ public partial class NameRepository(
 
         await context.Names.AddAsync(nameEntity);
         await context.SaveChangesAsync();
-        
+
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {
@@ -166,7 +171,7 @@ public partial class NameRepository(
             throw new KristException(ErrorCode.AddressNotFound); // ig ??
         }
 
-        var recipientAddress = await walletRepository.GetAddressAsync(address);
+        var recipientAddress = await walletRepository.GetWalletFromAddress(address);
         if (recipientAddress is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
@@ -186,18 +191,22 @@ public partial class NameRepository(
         nameEntity.Owner = recipientAddress.Address;
         nameEntity.LastTransfered = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
+        
 
-        var transaction = await transactionService.CreateSimpleTransactionAsync(wallet.Address, recipientAddress.Address, 0, TransactionType.NameTransfer);
+        var transaction =
+            transactionService.InitiateTransaction(wallet, recipientAddress, 0, TransactionType.NameTransfer);
+
         transaction.Name = name;
 
-        await context.SaveChangesAsync();
+        await transactionService.CommitTransactionAsync(wallet, recipientAddress, transaction);
+
 
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {
             Transaction = TransactionDto.FromEntity(transaction),
         });
-        
+
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
             Name = NameDto.FromEntity(nameEntity),
