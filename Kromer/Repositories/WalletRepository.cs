@@ -64,7 +64,8 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
         return paginatedWallets.Select(AddressDto.FromEntity).ToList();
     }
 
-    public async Task<AddressDto?> GetAddressAsync(string address, bool fetchNames = false)
+    public async Task<AddressDto?> GetAddressAsync(string address, bool fetchNames = false,
+        bool includePlayer = false)
     {
         var wallet = await context.Wallets.FirstOrDefaultAsync(q => q.Address == address);
         if (wallet is null)
@@ -78,8 +79,18 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
             names = await context.Names.CountAsync(q => q.Owner == address);
         }
 
+        Guid? ownerId = null;
+        if (includePlayer)
+        {
+            var playerEntity = await context.Players.FirstOrDefaultAsync(q =>
+                q.OwnedWallets != null && q.OwnedWallets.Contains(wallet.Id));
+            
+            ownerId = playerEntity?.Id;
+        }
+
         var addressDto = AddressDto.FromEntity(wallet);
         addressDto.Names = names;
+        addressDto.Player = ownerId;
 
         return addressDto;
     }

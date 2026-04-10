@@ -11,7 +11,7 @@ namespace Kromer.Services;
 
 public class LookupService(KromerContext context)
 {
-    public async Task<KristLookupAddresses> GetAddresses(List<string> addresses, bool fetchNames = false)
+    public async Task<KristLookupAddresses> GetAddresses(List<string> addresses, bool fetchNames = false, bool includePlayers = false)
     {
         var wallets = await context.Wallets
             .Where(q => addresses.Contains(q.Address))
@@ -26,6 +26,17 @@ public class LookupService(KromerContext context)
             foreach (var dto in dtos)
             {
                 dto.Names = await context.Names.CountAsync(q => q.Owner == dto.Address);
+            }
+        }
+        
+        if (includePlayers)
+        {
+            foreach (var dto in dtos)
+            {
+                var playerEntity = await context.Players.FirstOrDefaultAsync(q =>
+                    q.OwnedWallets != null && q.OwnedWallets.Contains(dto.Id));
+            
+                dto.Player = playerEntity?.Id;
             }
         }
 

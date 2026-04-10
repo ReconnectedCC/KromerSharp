@@ -22,7 +22,7 @@ public class LookupController(LookupService lookupService) : ControllerBase
     /// <exception cref="KristParameterException"></exception>
     [HttpGet("addresses/{addresses}")]
     public async Task<ActionResult<KristLookupAddresses>> GetAddresses(string addresses,
-        [FromQuery] bool fetchNames = false)
+        [FromQuery] bool fetchNames = false, [FromQuery] bool includePlayers = false)
     {
         var addressList = addresses.Split(',');
         if (addressList.Length == 0)
@@ -30,7 +30,7 @@ public class LookupController(LookupService lookupService) : ControllerBase
             throw new KristParameterException("addresses");
         }
 
-        return await lookupService.GetAddresses(addressList.ToList(), fetchNames);
+        return await lookupService.GetAddresses(addressList.ToList(), fetchNames, includePlayers);
     }
 
     
