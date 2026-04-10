@@ -19,6 +19,8 @@ public class AddressDto
     public DateTime FirstSeen { get; set; }
 
     public int? Names { get; set; }
+    
+    public Guid? Player { get; set; }
 
     public static AddressDto FromEntity(WalletEntity wallet)
     {

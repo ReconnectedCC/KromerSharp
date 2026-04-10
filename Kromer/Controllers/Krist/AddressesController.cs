@@ -43,18 +43,19 @@ public class AddressesController(WalletRepository walletRepository, TransactionR
     /// </summary>
     /// <param name="address">The Krist wallet address to retrieve details for.</param>
     /// <param name="fetchNames">A boolean indicating whether to include associated names in the address information.</param>
+    /// <param name="includePlayer">A boolean indicating whether to include the UUID of the player that owns the address if available.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the details of the address in a <see cref="KristResultAddress"/> object.</returns>
     /// <exception cref="KristException">Thrown when the specified address is not found.</exception>
     [HttpGet("{address}")]
-    public async Task<ActionResult<KristResultAddress>> Address(string address, [FromQuery] bool fetchNames)
+    public async Task<ActionResult<KristResultAddress>> Address(string address, [FromQuery] bool fetchNames, [FromQuery] bool includePlayer = false)
     {
-        var addressDto = await walletRepository.GetAddressAsync(address, fetchNames);
+        var addressDto = await walletRepository.GetAddressAsync(address, fetchNames, includePlayer);
 
         if (addressDto is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
         }
-
+        
         return new KristResultAddress()
         {
             Ok = true,

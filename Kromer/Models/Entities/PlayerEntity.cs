@@ -1,6 +1,6 @@
 ﻿namespace Kromer.Models.Entities;
 
-public partial class PlayerEntity
+public class PlayerEntity
 {
     public Guid Id { get; set; }
 
