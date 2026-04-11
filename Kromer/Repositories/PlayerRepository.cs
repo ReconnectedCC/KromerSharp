@@ -96,7 +96,7 @@ public class PlayerRepository(
 
         return new WalletResponse
         {
-            Wallet = WalletDto.FromEntity(sender),
+            Wallet = WalletDto.FromEntity(recipient),
         };
     }
 

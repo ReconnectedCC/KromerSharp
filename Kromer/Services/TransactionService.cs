@@ -37,7 +37,7 @@ public class TransactionService(
         }
 
         amount = decimal.Round(amount, 5, MidpointRounding.ToEven);
-        if (amount == 0 && transactionType == TransactionType.Transfer)
+        if (amount <= 0 && transactionType == TransactionType.Transfer)
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
@@ -45,6 +45,14 @@ public class TransactionService(
         if (sender.Balance < amount && sender.Address != ServerWallet)
         {
             throw new KristException(ErrorCode.InsufficientFunds);
+        }
+
+        // Flip sender and recipient.
+        // This case only happens if the transaction type is not Transfer and the sender is SERVERWELF.
+        if (amount < 0)
+        {
+            (sender, recipient) = (recipient, sender);
+            amount = Math.Abs(amount);
         }
 
         if (sender.Address != ServerWallet)
