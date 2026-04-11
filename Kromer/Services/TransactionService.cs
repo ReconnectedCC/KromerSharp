@@ -23,9 +23,25 @@ public class TransactionService(
     /// <param name="transactionType"></param>
     /// <returns></returns>
     /// <exception cref="KristException"></exception>
-    public TransactionEntity InitiateTransaction([NotNull] WalletEntity? sender, [NotNull] WalletEntity? recipient, decimal amount = 0,
+    public TransactionEntity InitiateTransaction([NotNull] WalletEntity? sender, [NotNull] WalletEntity? recipient,
+        decimal amount = 0,
         TransactionType transactionType = TransactionType.Transfer)
     {
+        // If mined, sender is null (or serverwelf actually, because too late to fix it)
+        // If amount is negative, swap sender and recipient, abs amount and use Transfer type.
+        if (transactionType == TransactionType.Mined && amount < 0)
+        {
+            (sender, recipient) = (recipient, sender);
+            amount = Math.Abs(amount);
+            transactionType = TransactionType.Transfer;
+
+            // Guard against sender not being serverwelf
+            if (sender?.Address != ServerWallet)
+            {
+                throw new KristException(ErrorCode.InvalidRequestType);
+            }
+        }
+
         if (sender is null || recipient is null)
         {
             throw new KristException(ErrorCode.AddressNotFound);
@@ -45,14 +61,6 @@ public class TransactionService(
         if (sender.Balance < amount && sender.Address != ServerWallet)
         {
             throw new KristException(ErrorCode.InsufficientFunds);
-        }
-
-        // Flip sender and recipient.
-        // This case only happens if the transaction type is not Transfer and the sender is SERVERWELF.
-        if (amount < 0)
-        {
-            (sender, recipient) = (recipient, sender);
-            amount = Math.Abs(amount);
         }
 
         if (sender.Address != ServerWallet)
