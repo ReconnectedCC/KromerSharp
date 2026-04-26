@@ -36,6 +36,7 @@ builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<SessionService>();
 builder.Services.AddScoped<LookupService>();
 builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<DiscordService>();
 
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddSingleton(Channel.CreateUnbounded<IKristEvent>());
