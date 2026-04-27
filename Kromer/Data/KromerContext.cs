@@ -19,16 +19,21 @@ public partial class KromerContext : DbContext
 
     public virtual DbSet<PlayerEntity> Players { get; set; }
 
+    public virtual DbSet<SubscriptionContractEntity> SubscriptionContracts { get; set; }
+
     public virtual DbSet<TransactionEntity> Transactions { get; set; }
 
     public virtual DbSet<WalletEntity> Wallets { get; set; }
+
+    public virtual DbSet<WalletSubscriptionEntity> WalletSubscriptions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
             .HasPostgresEnum("transaction_type",
                 new[] { "mined", "unknown", "name_purchase", "name_a_record", "name_transfer", "transfer" })
-            .HasPostgresEnum("transaction_type_enum", new[] { "unknown", "mined", "name_purchase", "transfer" });
+            .HasPostgresEnum("transaction_type_enum", new[] { "unknown", "mined", "name_purchase", "transfer" })
+            .HasPostgresEnum("subscription_status", new[] { "active", "cancelled" });
 
         modelBuilder.Entity<NameEntity>(entity =>
         {
@@ -114,6 +119,37 @@ public partial class KromerContext : DbContext
                 .HasColumnType("public.transaction_type");
         });
 
+        modelBuilder.Entity<SubscriptionContractEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("subscription_contracts_pkey");
+
+            entity.ToTable("subscription_contracts");
+
+            entity.HasIndex(e => e.BaseName, "idx_subscription_contract_base_name");
+            entity.HasIndex(e => e.Receiver, "idx_subscription_contract_receiver");
+            entity.HasIndex(e => e.Status, "idx_subscription_contract_status");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Receiver)
+                .HasMaxLength(98)
+                .HasColumnName("receiver");
+            entity.Property(e => e.BaseName)
+                .HasMaxLength(64)
+                .HasColumnName("base_name");
+            entity.Property(e => e.Price)
+                .HasPrecision(16, 5)
+                .HasColumnName("price");
+            entity.Property(e => e.PeriodMinutes).HasColumnName("period_minutes");
+            entity.Property(e => e.Description)
+                .HasMaxLength(255)
+                .HasColumnName("description");
+            entity.Property(e => e.Status)
+                .HasColumnName("status")
+                .HasColumnType("public.subscription_status");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+        });
+
         modelBuilder.Entity<WalletEntity>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("wallets_pkey");
@@ -143,6 +179,45 @@ public partial class KromerContext : DbContext
             entity.Property(e => e.TotalOut)
                 .HasPrecision(16, 5)
                 .HasColumnName("total_out");
+        });
+
+        modelBuilder.Entity<WalletSubscriptionEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("wallet_subscriptions_pkey");
+
+            entity.ToTable("wallet_subscriptions");
+
+            entity.HasIndex(e => e.ContractId, "idx_wallet_subscription_contract_id");
+            entity.HasIndex(e => e.WalletAddress, "idx_wallet_subscription_wallet_address");
+            entity.HasIndex(e => e.NextPayment, "idx_wallet_subscription_next_payment");
+            entity.HasIndex(e => new { e.ContractId, e.WalletAddress }, "unique_active_wallet_subscription")
+                .IsUnique()
+                .HasFilter("status = 'active'");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ContractId).HasColumnName("contract_id");
+            entity.Property(e => e.WalletAddress)
+                .HasMaxLength(10)
+                .IsFixedLength()
+                .HasColumnName("wallet_address");
+            entity.Property(e => e.NextPayment).HasColumnName("next_payment");
+            entity.Property(e => e.Status)
+                .HasColumnName("status")
+                .HasColumnType("public.subscription_status");
+            entity.Property(e => e.CancellationReason)
+                .HasMaxLength(64)
+                .HasColumnName("cancellation_reason");
+            entity.Property(e => e.CanUnsubscribe)
+                .HasDefaultValue(true)
+                .HasColumnName("can_unsubscribe");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+
+            entity.HasOne(e => e.Contract)
+                .WithMany(e => e.WalletSubscriptions)
+                .HasForeignKey(e => e.ContractId)
+                .HasConstraintName("wallet_subscriptions_contract_id_fkey")
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

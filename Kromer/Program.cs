@@ -23,7 +23,11 @@ builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddDbContext<KromerContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default"),
-        o => o.MapEnum<TransactionType>("transaction_type", "public")));
+        o =>
+        {
+            o.MapEnum<TransactionType>("transaction_type", "public");
+            o.MapEnum<SubscriptionStatus>("subscription_status", "public");
+        }));
 
 builder.Services.AddScoped<WalletRepository>();
 builder.Services.AddScoped<TransactionRepository>();
@@ -31,6 +35,7 @@ builder.Services.AddScoped<NameRepository>();
 builder.Services.AddScoped<MiscRepository>();
 builder.Services.AddScoped<PlayerRepository>();
 builder.Services.AddScoped<SearchRepository>();
+builder.Services.AddScoped<SubscriptionRepository>();
 
 builder.Services.AddScoped<TransactionService>();
 builder.Services.AddScoped<SessionService>();
@@ -43,6 +48,7 @@ builder.Services.AddSingleton(Channel.CreateUnbounded<IKristEvent>());
 
 builder.Services.AddHostedService<EventDispatcher>();
 builder.Services.AddHostedService<BackgroundSessionJob>();
+builder.Services.AddHostedService<SubscriptionBillingService>();
 
 // Support for reverse proxies, like NGINX
 builder.Services.Configure<ForwardedHeadersOptions>(options => { options.ForwardedHeaders = ForwardedHeaders.All; });
