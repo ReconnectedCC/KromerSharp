@@ -33,7 +33,7 @@ public partial class KromerContext : DbContext
             .HasPostgresEnum("transaction_type",
                 new[] { "mined", "unknown", "name_purchase", "name_a_record", "name_transfer", "transfer" })
             .HasPostgresEnum("transaction_type_enum", new[] { "unknown", "mined", "name_purchase", "transfer" })
-            .HasPostgresEnum("subscription_status", new[] { "active", "cancelled" });
+            .HasPostgresEnum("subscription_status", new[] { "active", "closed", "cancelled" });
 
         modelBuilder.Entity<NameEntity>(entity =>
         {
@@ -143,6 +143,10 @@ public partial class KromerContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(255)
                 .HasColumnName("description");
+            entity.Property(e => e.MaxSubscribers).HasColumnName("max_subscribers");
+            entity.Property(e => e.AllowedSubscriberAddresses)
+                .HasColumnType("text[]")
+                .HasColumnName("allowed_subscriber_addresses");
             entity.Property(e => e.Status)
                 .HasColumnName("status")
                 .HasColumnType("public.subscription_status");

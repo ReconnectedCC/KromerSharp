@@ -14,6 +14,10 @@ public class SubscriptionContractEntity
 
     public string Description { get; set; } = null!;
 
+    public int? MaxSubscribers { get; set; }
+
+    public string[]? AllowedSubscriberAddresses { get; set; }
+
     public SubscriptionStatus Status { get; set; } = SubscriptionStatus.Active;
 
     public DateTime CreatedAt { get; set; }

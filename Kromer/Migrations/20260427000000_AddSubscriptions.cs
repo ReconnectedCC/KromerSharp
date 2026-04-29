@@ -1,4 +1,6 @@
+using Kromer.Data;
 using Kromer.Models.Entities;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -6,6 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Kromer.Migrations;
 
+[DbContext(typeof(KromerContext))]
 [Migration("20260427000000_AddSubscriptions")]
 public partial class AddSubscriptions : Migration
 {
@@ -15,7 +18,14 @@ public partial class AddSubscriptions : Migration
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_status') THEN
-                    CREATE TYPE public.subscription_status AS ENUM ('active', 'cancelled');
+                    CREATE TYPE public.subscription_status AS ENUM ('active', 'closed', 'cancelled');
+                ELSIF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_enum e
+                    JOIN pg_type t ON t.oid = e.enumtypid
+                    WHERE t.typname = 'subscription_status' AND e.enumlabel = 'closed'
+                ) THEN
+                    ALTER TYPE public.subscription_status ADD VALUE 'closed' BEFORE 'cancelled';
                 END IF;
             END
             $$;
@@ -32,6 +42,8 @@ public partial class AddSubscriptions : Migration
                 price = table.Column<decimal>(type: "numeric(16,5)", precision: 16, scale: 5, nullable: false),
                 period_minutes = table.Column<int>(type: "integer", nullable: false),
                 description = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                max_subscribers = table.Column<int>(type: "integer", nullable: true),
+                allowed_subscriber_addresses = table.Column<string[]>(type: "text[]", nullable: true),
                 status = table.Column<SubscriptionStatus>(type: "public.subscription_status", nullable: false),
                 created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                 cancelled_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)

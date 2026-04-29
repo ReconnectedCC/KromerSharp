@@ -26,6 +26,14 @@ public class SubscriptionsController(SubscriptionRepository subscriptionReposito
             await subscriptionRepository.CancelContractAsync(id, request?.PrivateKey));
     }
 
+    [HttpPost("{id:int}/close")]
+    public async Task<ActionResult<Result<SubscriptionDto>>> CloseSubscription(int id,
+        [FromBody] PrivateKeyRequest? request)
+    {
+        return new Result<SubscriptionDto>(
+            await subscriptionRepository.CloseContractAsync(id, request?.PrivateKey));
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<Result<SubscriptionDto>>> GetSubscription(int id, [FromQuery] string? address = null)
     {

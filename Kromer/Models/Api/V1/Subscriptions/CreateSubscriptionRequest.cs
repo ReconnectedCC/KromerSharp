@@ -14,4 +14,8 @@ public class CreateSubscriptionRequest
     public int Period { get; set; }
 
     public required string Description { get; set; }
+
+    public int? MaxSubscribers { get; set; }
+
+    public List<string>? AllowedSubscribers { get; set; }
 }

@@ -24,6 +24,7 @@ public class SubscriptionRepository(
     private const string ReasonSubscriberMissing = "subscriber_missing";
     private const string ReasonOwnerMissing = "owner_missing";
     private const string ReasonSameWallet = "same_wallet";
+    private const int MaxAllowedSubscriberAddresses = 1000;
 
     public async Task<CreateSubscriptionResponse> CreateContractAsync(CreateSubscriptionRequest? request)
     {
@@ -39,6 +40,8 @@ public class SubscriptionRepository(
             Price = decimal.Round(request.Price, 5, MidpointRounding.ToEven),
             PeriodMinutes = request.Period,
             Description = request.Description.Trim(),
+            MaxSubscribers = request.MaxSubscribers,
+            AllowedSubscriberAddresses = NormalizeAllowedSubscribers(request.AllowedSubscribers),
             Status = SubscriptionStatus.Active,
             CreatedAt = DateTime.UtcNow,
         };
@@ -53,6 +56,30 @@ public class SubscriptionRepository(
         {
             Id = contract.Id,
         };
+    }
+
+    public async Task<SubscriptionDto> CloseContractAsync(int id, string? privateKey)
+    {
+        AssertPrivateKey(privateKey);
+
+        var contract = await context.SubscriptionContracts.FirstOrDefaultAsync(q => q.Id == id);
+        if (contract is null)
+        {
+            throw new KromerException(ErrorCode.ResourceNotFound);
+        }
+
+        var owner = await AuthenticateCurrentOwnerAsync(privateKey, contract.BaseName);
+
+        if (contract.Status == SubscriptionStatus.Active)
+        {
+            contract.Status = SubscriptionStatus.Closed;
+            await context.SaveChangesAsync();
+
+            await EmitSubscriptionEventAsync("contract_closed", contract, null, owner.Address,
+                SubscriptionStatus.Closed);
+        }
+
+        return await BuildDtoAsync(contract, owner.Address);
     }
 
     public async Task<SubscriptionDto> CancelContractAsync(int id, string? privateKey)
@@ -73,7 +100,7 @@ public class SubscriptionRepository(
 
         var owner = await AuthenticateCurrentOwnerAsync(privateKey, contract.BaseName);
 
-        if (contract.Status == SubscriptionStatus.Active)
+        if (contract.Status != SubscriptionStatus.Cancelled)
         {
             contract.Status = SubscriptionStatus.Cancelled;
             contract.CancelledAt = now;
@@ -132,7 +159,7 @@ public class SubscriptionRepository(
         offset = Math.Max(offset, 0);
 
         var query = context.SubscriptionContracts
-            .Where(q => q.Status == SubscriptionStatus.Active);
+            .Where(q => q.Status != SubscriptionStatus.Cancelled);
 
         string? contextAddress = null;
         if (!string.IsNullOrWhiteSpace(name))
@@ -217,86 +244,87 @@ public class SubscriptionRepository(
             throw new KromerException(ErrorCode.AuthenticationFailed);
         }
 
-        var contract = await context.SubscriptionContracts.FirstOrDefaultAsync(q =>
-            q.Id == contractId && q.Status == SubscriptionStatus.Active);
-        if (contract is null)
-        {
-            throw new KromerException(ErrorCode.ResourceNotFound);
-        }
-
-        var existing = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
-            q.ContractId == contract.Id &&
-            q.WalletAddress == subscriber.Address &&
-            q.Status == SubscriptionStatus.Active);
-        if (existing is not null)
-        {
-            return new SubscribeResponse
-            {
-                NextPayment = existing.NextPayment,
-            };
-        }
-
-        var owner = await ResolveCurrentOwnerWalletAsync(contract.BaseName);
-        if (owner.Address == subscriber.Address)
-        {
-            throw new KromerException(ErrorCode.SameWalletTransfer);
-        }
-
         var now = DateTime.UtcNow;
-        var cancelledWithRemainingTime = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
-            q.ContractId == contract.Id &&
-            q.WalletAddress == subscriber.Address &&
-            q.CancellationReason == ReasonUnsubscribed &&
-            q.NextPayment > now);
-        if (cancelledWithRemainingTime is not null)
+        SubscriptionContractEntity contract;
+        WalletSubscriptionEntity subscription;
+        WalletEntity owner;
+
+        await using (var transaction = await context.Database.BeginTransactionAsync())
         {
-            cancelledWithRemainingTime.Status = SubscriptionStatus.Active;
-            cancelledWithRemainingTime.CancellationReason = null;
-            cancelledWithRemainingTime.CancelledAt = null;
-            context.WalletSubscriptions.Update(cancelledWithRemainingTime);
-            await context.SaveChangesAsync();
-
-            await EmitSubscriptionEventAsync("subscribe", contract, cancelledWithRemainingTime, owner.Address,
-                SubscriptionStatus.Active);
-
-            return new SubscribeResponse
+            var lockedContract = await context.SubscriptionContracts
+                .FromSqlInterpolated(
+                    $"SELECT * FROM subscription_contracts WHERE id = {contractId} FOR UPDATE")
+                .FirstOrDefaultAsync();
+            if (lockedContract is null || lockedContract.Status == SubscriptionStatus.Cancelled)
             {
-                NextPayment = cancelledWithRemainingTime.NextPayment,
-            };
-        }
+                throw new KromerException(ErrorCode.ResourceNotFound);
+            }
 
-        var subscription = new WalletSubscriptionEntity
-        {
-            ContractId = contract.Id,
-            WalletAddress = subscriber.Address,
-            NextPayment = now.AddMinutes(contract.PeriodMinutes),
-            Status = SubscriptionStatus.Active,
-            CanUnsubscribe = true,
-            CreatedAt = now,
-        };
+            contract = lockedContract;
 
-        await context.WalletSubscriptions.AddAsync(subscription);
-        try
-        {
-            await context.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            context.Entry(subscription).State = EntityState.Detached;
-            existing = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
+            var existing = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
                 q.ContractId == contract.Id &&
                 q.WalletAddress == subscriber.Address &&
                 q.Status == SubscriptionStatus.Active);
-
             if (existing is not null)
             {
+                await transaction.CommitAsync();
                 return new SubscribeResponse
                 {
                     NextPayment = existing.NextPayment,
                 };
             }
 
-            throw;
+            owner = await ResolveCurrentOwnerWalletAsync(contract.BaseName);
+            if (owner.Address == subscriber.Address)
+            {
+                throw new KromerException(ErrorCode.SameWalletTransfer);
+            }
+
+            var cancelledWithRemainingTime = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
+                q.ContractId == contract.Id &&
+                q.WalletAddress == subscriber.Address &&
+                q.CancellationReason == ReasonUnsubscribed &&
+                q.NextPayment > now);
+            if (cancelledWithRemainingTime is not null)
+            {
+                cancelledWithRemainingTime.Status = SubscriptionStatus.Active;
+                cancelledWithRemainingTime.CancellationReason = null;
+                cancelledWithRemainingTime.CancelledAt = null;
+                context.WalletSubscriptions.Update(cancelledWithRemainingTime);
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await EmitSubscriptionEventAsync("subscribe", contract, cancelledWithRemainingTime, owner.Address,
+                    SubscriptionStatus.Active);
+
+                return new SubscribeResponse
+                {
+                    NextPayment = cancelledWithRemainingTime.NextPayment,
+                };
+            }
+
+            if (contract.Status == SubscriptionStatus.Closed)
+            {
+                throw new KromerException(ErrorCode.SubscriptionClosed);
+            }
+
+            AssertSubscriberAllowed(contract, subscriber.Address);
+            await AssertSubscriberCapacityAsync(contract, now);
+
+            subscription = new WalletSubscriptionEntity
+            {
+                ContractId = contract.Id,
+                WalletAddress = subscriber.Address,
+                NextPayment = now.AddMinutes(contract.PeriodMinutes),
+                Status = SubscriptionStatus.Active,
+                CanUnsubscribe = true,
+                CreatedAt = now,
+            };
+
+            await context.WalletSubscriptions.AddAsync(subscription);
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         try
@@ -365,7 +393,7 @@ public class SubscriptionRepository(
             .Include(q => q.Contract)
             .Where(q =>
                 q.Status == SubscriptionStatus.Active &&
-                q.Contract.Status == SubscriptionStatus.Active &&
+                q.Contract.Status != SubscriptionStatus.Cancelled &&
                 q.NextPayment <= now)
             .OrderBy(q => q.NextPayment)
             .Take(100)
@@ -471,11 +499,9 @@ public class SubscriptionRepository(
     private async Task<SubscriptionDto> BuildDtoAsync(SubscriptionContractEntity contract, string? address)
     {
         var now = DateTime.UtcNow;
-        var subscribers = await context.WalletSubscriptions.CountAsync(q =>
-            q.ContractId == contract.Id &&
-            contract.Status == SubscriptionStatus.Active &&
-            (q.Status == SubscriptionStatus.Active ||
-             (q.CancellationReason == ReasonUnsubscribed && q.NextPayment > now)));
+        var subscribers = contract.Status == SubscriptionStatus.Cancelled
+            ? 0
+            : await CountCurrentSubscribersAsync(contract.Id, now);
 
         var dto = new SubscriptionDto
         {
@@ -485,6 +511,8 @@ public class SubscriptionRepository(
             Period = contract.PeriodMinutes,
             Name = contract.Receiver,
             Subscribers = subscribers,
+            MaxSubscribers = contract.MaxSubscribers,
+            AllowedSubscribers = contract.AllowedSubscriberAddresses,
             Status = contract.Status,
         };
 
@@ -496,7 +524,7 @@ public class SubscriptionRepository(
         var subscription = await context.WalletSubscriptions.FirstOrDefaultAsync(q =>
             q.ContractId == contract.Id &&
             q.WalletAddress == address &&
-            contract.Status == SubscriptionStatus.Active &&
+            contract.Status != SubscriptionStatus.Cancelled &&
             (q.Status == SubscriptionStatus.Active ||
              (q.CancellationReason == ReasonUnsubscribed && q.NextPayment > now)));
         var ownerAddress = await ResolveCurrentOwnerAddressAsync(contract.BaseName, throwIfMissing: false);
@@ -612,6 +640,7 @@ public class SubscriptionRepository(
             string.IsNullOrWhiteSpace(request.Name) ||
             string.IsNullOrWhiteSpace(request.Description) ||
             request.Description.Trim().Length > 255 ||
+            request.MaxSubscribers is <= 0 ||
             request.Period < 1 ||
             decimal.Round(request.Price, 5, MidpointRounding.ToEven) <= 0)
         {
@@ -632,6 +661,71 @@ public class SubscriptionRepository(
         subscription.Status = SubscriptionStatus.Cancelled;
         subscription.CancellationReason = reason;
         subscription.CancelledAt = now;
+    }
+
+    private async Task AssertSubscriberCapacityAsync(SubscriptionContractEntity contract, DateTime now)
+    {
+        if (contract.MaxSubscribers is null)
+        {
+            return;
+        }
+
+        var subscribers = await CountCurrentSubscribersAsync(contract.Id, now);
+        if (subscribers >= contract.MaxSubscribers.Value)
+        {
+            throw new KromerException(ErrorCode.SubscriptionFull);
+        }
+    }
+
+    private async Task<int> CountCurrentSubscribersAsync(int contractId, DateTime now)
+    {
+        return await context.WalletSubscriptions.CountAsync(q =>
+            q.ContractId == contractId &&
+            (q.Status == SubscriptionStatus.Active ||
+             (q.CancellationReason == ReasonUnsubscribed && q.NextPayment > now)));
+    }
+
+    private static void AssertSubscriberAllowed(SubscriptionContractEntity contract, string subscriberAddress)
+    {
+        if (contract.AllowedSubscriberAddresses is not { Length: > 0 })
+        {
+            return;
+        }
+
+        if (!contract.AllowedSubscriberAddresses.Contains(subscriberAddress, StringComparer.Ordinal))
+        {
+            throw new KromerException(ErrorCode.SubscriberNotAllowed);
+        }
+    }
+
+    private static string[]? NormalizeAllowedSubscribers(IEnumerable<string>? addresses)
+    {
+        if (addresses is null)
+        {
+            return null;
+        }
+
+        var normalized = new List<string>();
+        foreach (var address in addresses)
+        {
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                throw new KromerException(ErrorCode.InvalidParameter);
+            }
+
+            normalized.Add(address.Trim().ToLowerInvariant());
+        }
+
+        if (normalized.Count is 0 or > MaxAllowedSubscriberAddresses ||
+            normalized.Any(q => !Validation.IsValidAddress(q)))
+        {
+            throw new KromerException(ErrorCode.InvalidParameter);
+        }
+
+        return normalized
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(q => q, StringComparer.Ordinal)
+            .ToArray();
     }
 
     private async Task EmitSubscriptionEventAsync(string action, SubscriptionContractEntity contract,
