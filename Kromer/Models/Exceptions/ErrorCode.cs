@@ -46,6 +46,18 @@ public enum ErrorCode
     [StatusCode(HttpStatusCode.Forbidden)]
     SameWalletTransfer,
 
+    [Description("The subscription contract is closed")]
+    [StatusCode(HttpStatusCode.Forbidden)]
+    SubscriptionClosed,
+
+    [Description("The subscription contract is full")]
+    [StatusCode(HttpStatusCode.Conflict)]
+    SubscriptionFull,
+
+    [Description("The wallet is not allowed to subscribe to this contract")]
+    [StatusCode(HttpStatusCode.Forbidden)]
+    SubscriberNotAllowed,
+
     [Description("Resource not found")]
     [StatusCode(HttpStatusCode.NotFound)]
     ResourceNotFound,
