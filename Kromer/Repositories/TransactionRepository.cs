@@ -115,7 +115,7 @@ public class TransactionRepository(
         {
             throw new KristParameterException("to");
         }
-        
+
         var sender = await walletRepository.GetWalletFromKeyAsync(privateKey);
         if (sender is null)
         {
@@ -146,7 +146,55 @@ public class TransactionRepository(
         transaction.Metadata = metadata;
         transaction.SentName = nameData.Valid ? nameData.Name : null;
         transaction.SentMetaname = nameData.Valid && !string.IsNullOrWhiteSpace(nameData.Meta) ? nameData.Meta : null;
-        
+
+        await transactionService.CommitTransactionAsync(sender, recipient, transaction);
+
+        // Emit transaction event
+        await eventChannel.Writer.WriteAsync(new KristTransactionEvent
+        {
+            Transaction = TransactionDto.FromEntity(transaction),
+        });
+
+        return TransactionDto.FromEntity(transaction);
+    }
+
+    public async Task<TransactionDto> ForceCreateTransactionAsync(string fromAddr, string to, decimal amount,
+        string? metadata = null)
+    {
+        if (string.IsNullOrEmpty(to) || to.Length > 64)
+        {
+            throw new KristParameterException("to");
+        }
+
+        var sender = await walletRepository.GetWalletFromAddress(fromAddr);
+
+
+        var nameData = Validation.ParseMetaName(to);
+
+        string recipientAddress;
+        if (nameData.Valid)
+        {
+            var name = await nameRepository.GetNameAsync(nameData.Name);
+            if (name is null)
+            {
+                throw new KristException(ErrorCode.NameNotFound);
+            }
+            recipientAddress = name.Owner;
+        }
+        else
+        {
+            recipientAddress = to;
+        }
+
+        var recipient = await walletRepository.GetWalletFromAddress(recipientAddress);
+        metadata = string.IsNullOrWhiteSpace(metadata) ? "forcetransfer=true" : $"{metadata};forcetransfer=true";
+        var transaction = transactionService.InitiateTransaction(sender, recipient, amount);
+
+        transaction.Metadata = metadata;
+        transaction.SentName = nameData.Valid ? nameData.Name : null;
+        transaction.SentMetaname = nameData.Valid && !string.IsNullOrWhiteSpace(nameData.Meta) ? nameData.Meta : null;
+        transaction.TransactionType = TransactionType.Mined;
+
         await transactionService.CommitTransactionAsync(sender, recipient, transaction);
 
         // Emit transaction event
