@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using System.Xml.XPath;
 using Kromer;
 using Kromer.Data;
+using Kromer.Jobs;
 using Kromer.Models.Api.Krist;
 using Kromer.Models.Api.V1;
 using Kromer.Models.Entities;
@@ -40,6 +41,7 @@ builder.Services.AddScoped<DiscordService>();
 
 builder.Services.AddSingleton<SessionManager>();
 builder.Services.AddSingleton(Channel.CreateUnbounded<IKristEvent>());
+builder.Services.AddSingleton<RateLimitService>();
 
 builder.Services.AddHostedService<EventDispatcher>();
 builder.Services.AddHostedService<BackgroundSessionJob>();
@@ -89,7 +91,8 @@ builder.Services.AddOpenApi(o =>
 
         if (method is null) return Task.CompletedTask;
 
-        var memberName = $"M:{method.DeclaringType!.FullName}.{method.Name}({string.Join(",", method.GetParameters().Select(p => p.ParameterType.FullName))})";
+        var memberName =
+            $"M:{method.DeclaringType!.FullName}.{method.Name}({string.Join(",", method.GetParameters().Select(p => p.ParameterType.FullName))})";
         var summary = xmlNav.SelectSingleNode($"//member[@name='{memberName}']/summary");
         if (summary != null)
             operation.Summary = System.Text.RegularExpressions.Regex.Replace(summary.InnerXml.Trim(), @"\s+", " ");
