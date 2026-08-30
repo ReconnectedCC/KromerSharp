@@ -1,0 +1,33 @@
+using System.Text.Json.Serialization;
+using Kromer.Models.Entities;
+
+namespace Kromer.Models.Dto;
+
+public class SubscriptionDto
+{
+    public int Id { get; set; }
+
+    public string Description { get; set; } = null!;
+
+    public decimal Price { get; set; }
+
+    public int Period { get; set; }
+
+    public string Name { get; set; } = null!;
+
+    public int Subscribers { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? MaxSubscribers { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyCollection<string>? AllowedSubscribers { get; set; }
+
+    public SubscriptionStatus Status { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? OwnerAddress { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyCollection<WalletSubscriptionDto>? WalletSubscriptions { get; set; }
+}
