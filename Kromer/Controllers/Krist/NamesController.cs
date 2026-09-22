@@ -149,6 +149,7 @@ public class NamesController(NameRepository nameRepository) : ControllerBase
 
     /// <summary>
     /// Transfers ownership of a name to a new address.
+    /// Transferring to 'serverwelf' will delete the name.
     /// </summary>
     /// <param name="name">The name to be transferred.</param>
     /// <param name="request">The transfer request containing the private key and the destination address.</param>
