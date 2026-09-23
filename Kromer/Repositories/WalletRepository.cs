@@ -161,7 +161,7 @@ public class WalletRepository(KromerContext context, ILogger<WalletRepository> l
     public async Task<decimal> GetNetworkSupply()
     {
         return await context.Wallets
-            .Where(q => q.Address != TransactionService.ServerWallet)
+            .Where(q => q.Address != Constants.ServerWallet)
             .SumAsync(q => q.Balance);
     }
 }

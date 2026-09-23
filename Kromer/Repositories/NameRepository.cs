@@ -116,7 +116,7 @@ public partial class NameRepository(
 
         name = Validation.SanitizeName(name);
 
-        var serverWallet = await walletRepository.GetWalletFromAddress(TransactionService.ServerWallet);
+        var serverWallet = await walletRepository.GetWalletFromAddress(Constants.ServerWallet);
 
         logger.LogInformation("Registering name '{Name}' for address {WalletAddress}", name, wallet.Address);
 
@@ -185,10 +185,17 @@ public partial class NameRepository(
             return NameDto.FromEntity(nameEntity);
         }
 
-        nameEntity.Owner = recipientAddress.Address;
-        nameEntity.LastTransfered = DateTime.UtcNow;
-        context.Entry(nameEntity).State = EntityState.Modified;
-
+        // Delete name if serverwelf
+        if (recipientAddress.Address == Constants.ServerWallet)
+        {
+            context.Names.Remove(nameEntity);
+        }
+        else
+        {
+            nameEntity.Owner = recipientAddress.Address;
+            nameEntity.LastTransfered = DateTime.UtcNow;
+            context.Entry(nameEntity).State = EntityState.Modified;
+        }
 
         var transaction =
             transactionService.InitiateTransaction(wallet, recipientAddress, 0, TransactionType.NameTransfer);

@@ -12,8 +12,6 @@ public class TransactionService(
     KromerContext context,
     ILogger<TransactionService> logger)
 {
-    public const string ServerWallet = "serverwelf";
-
     /// <summary>
     /// 
     /// </summary>
@@ -51,12 +49,12 @@ public class TransactionService(
             throw new KristException(ErrorCode.InvalidAmount);
         }
 
-        if (sender.Balance < amount && sender.Address != ServerWallet)
+        if (sender.Balance < amount && sender.Address != Constants.ServerWallet)
         {
             throw new KristException(ErrorCode.InsufficientFunds);
         }
 
-        if (sender.Address != ServerWallet)
+        if (sender.Address != Constants.ServerWallet)
         {
             sender.Balance -= amount;
         }

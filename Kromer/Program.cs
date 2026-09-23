@@ -176,7 +176,8 @@ app.UseExceptionHandler(builder =>
 
                 return;
             }
-            else if (exception is KromerException kromerException)
+
+            if (exception is KromerException kromerException)
             {
                 var result = Result<object>.Throw(new Error
                 {
