@@ -38,6 +38,13 @@ public class EventDispatcher(ILogger<EventDispatcher> logger, SessionManager ses
                             level = isOwn ? SubscriptionLevel.OwnTransactions : SubscriptionLevel.Transactions;
                             break;
                         }
+                        case KromerSubscriptionEvent subscriptionEvent:
+                        {
+                            var isOwn = subscriptionEvent.OwnerAddress == address ||
+                                        subscriptionEvent.SubscriberAddress == address;
+                            level = isOwn ? SubscriptionLevel.OwnSubscriptions : 0;
+                            break;
+                        }
                     }
 
                     if (level != 0 && session.SubscriptionLevel.HasFlag(level))

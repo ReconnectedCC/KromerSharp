@@ -14,4 +14,6 @@ public enum SubscriptionLevel : byte
 
     [Obsolete("Unused")]
     Motd = 64,
+
+    OwnSubscriptions = 128,
 }
