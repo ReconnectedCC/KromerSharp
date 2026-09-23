@@ -150,9 +150,11 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
 
             await using var scope = scopeFactory.CreateAsyncScope();
             var miscRepository = scope.ServiceProvider.GetRequiredService<MiscRepository>();
+            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
             await session.SendAsync(new KristHelloPacket
             {
-                Motd = "Welcome to Kromer.",
+                Motd = configuration.GetValue("Motd", "Welcome to Kromer."),
+                Notice = configuration.GetValue("Notice", string.Empty),
                 Set = DateTime.UtcNow,
                 MotdSet = DateTime.UtcNow,
                 PublicUrl = miscRepository.GetPublicUrl(),
@@ -161,7 +163,7 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
                 {
                     NameCost = miscRepository.GetNameCost(),
                 }
-            });
+            }, cancellationToken);
 
             var buffer = new byte[4096];
             var message = new StringBuilder();

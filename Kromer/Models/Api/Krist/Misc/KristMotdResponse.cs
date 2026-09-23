@@ -9,15 +9,15 @@ public class KristMotdResponse : KristResult
 
     public DateTime ServerTime { get; set; } = DateTime.UtcNow;
 
-    public string Motd { get; set; }
+    public required string Motd { get; set; }
 
     public DateTime? Set { get; set; } = null;
 
     public DateTime? MotdSet { get; set; } = null;
 
-    public string PublicUrl { get; set; }
+    public required string PublicUrl { get; set; }
 
-    public string PublicWsUrl { get; set; }
+    public required string PublicWsUrl { get; set; }
 
     // Fuck you
     public bool MiningEnabled { get; set; } = false;
@@ -36,6 +36,8 @@ public class KristMotdResponse : KristResult
     public MotdConstants Constants { get; set; } = new MotdConstants();
 
     public MotdCurrency Currency { get; set; } = new MotdCurrency();
+    
+    public required string Notice { get; set; }
 
     public class MotdPackage
     {
@@ -45,7 +47,7 @@ public class KristMotdResponse : KristResult
 
         public string Author { get; set; } = "ReconnectedCC Team";
 
-        public string Licence { get; set; } = "GPL-3.0";
+        public string Licence { get; set; } = "Proprietary"; // until further notice
 
         public string Repository { get; set; } = "https://github.com/ReconnectedCC/KromerSharp";
 
