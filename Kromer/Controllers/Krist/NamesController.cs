@@ -177,6 +177,7 @@ public class NamesController(NameRepository nameRepository) : ControllerBase
     /// <exception cref="KristException">Thrown if the specified name does not exist, the private key is invalid, or the user is not authorized to update the name.</exception>
     [HttpPost("{name}/update")]
     [HttpPut("{name}/update")]
+    [HttpPut("{name}")]
     public async Task<ActionResult<KristResultName>> UpdateName(string name, [FromBody] KristRequestNameUpdate request)
     {
         var result = await nameRepository.UpdateNameAsync(request.PrivateKey, name, request.A);

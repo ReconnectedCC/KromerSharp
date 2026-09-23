@@ -39,6 +39,6 @@ public class MiscRepository(IConfiguration configuration)
 
     public int GetWalletVersion()
     {
-        return 14;
+        return 16;
     }
 }

@@ -54,7 +54,7 @@ public class KristMotdResponse : KristResult
 
     public class MotdConstants
     {
-        public int WalletVersion { get; set; } = 3;
+        public int WalletVersion { get; set; } = 16;
 
         public int NonceMaxSize { get; set; } = 500;
 

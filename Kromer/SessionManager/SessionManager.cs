@@ -378,7 +378,7 @@ public class SessionManager(ILogger<SessionManager> logger, IServiceScopeFactory
         var addressResult = await walletRepository.VerifyAddressAsync(request.PrivateKey);
         if (!addressResult.Authed)
         {
-            throw new KristException(ErrorCode.AuthenticationFailed);
+            throw new KristException(ErrorCode.AuthFailed);
         }
 
         var address = AddressDto.FromEntity(addressResult.Wallet!);

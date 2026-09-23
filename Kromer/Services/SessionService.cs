@@ -23,7 +23,7 @@ public class SessionService(
         if (!result.Authed)
         {
             sessionManager.ExpireSession(session.Id);
-            throw new KristException(ErrorCode.AuthenticationFailed);
+            throw new KristException(ErrorCode.AuthFailed);
         }
 
         session.Address = result.Wallet!.Address;

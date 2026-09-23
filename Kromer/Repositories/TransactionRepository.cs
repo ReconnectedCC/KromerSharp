@@ -119,7 +119,7 @@ public class TransactionRepository(
         var sender = await walletRepository.GetWalletFromKeyAsync(privateKey);
         if (sender is null)
         {
-            throw new KristException(ErrorCode.AuthenticationFailed);
+            throw new KristException(ErrorCode.AuthFailed);
         }
 
         var nameData = Validation.ParseMetaName(to);
