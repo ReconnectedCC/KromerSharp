@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using Kromer.Data;
-using Kromer.Models.Dto;
 using Kromer.Models.Entities;
 using Kromer.Models.Exceptions;
-using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kromer.Services;
@@ -21,9 +19,10 @@ public class TransactionService(
     /// <param name="transactionType"></param>
     /// <returns></returns>
     /// <exception cref="KristException"></exception>
-    public TransactionEntity InitiateTransaction([NotNull] WalletEntity? sender, [NotNull] WalletEntity? recipient,
+    public async Task<TransactionEntity> RunTransactionAsync([NotNull] WalletEntity? sender,
+        [NotNull] WalletEntity? recipient,
         decimal amount = 0,
-        TransactionType transactionType = TransactionType.Transfer)
+        TransactionType transactionType = TransactionType.Transfer, TransactionEntity? transaction = null)
     {
         // If mined, sender is null (or serverwelf actually, because too late to fix it)
         // If amount is negative, swap sender and recipient, abs amount
@@ -44,45 +43,63 @@ public class TransactionService(
         }
 
         amount = decimal.Round(amount, 5, MidpointRounding.ToEven);
-        if (amount <= 0 && transactionType == TransactionType.Transfer)
+        if (amount < 0 || (amount == 0 && transactionType == TransactionType.Transfer))
         {
             throw new KristException(ErrorCode.InvalidAmount);
         }
 
-        if (sender.Balance < amount && sender.Address != Constants.ServerWallet)
+        var ownsTx = context.Database.CurrentTransaction is null;
+        await using var tx = ownsTx
+            ? await context.Database.BeginTransactionAsync()
+            : null;
+
+        if (sender.Address == Constants.ServerWallet)
         {
-            throw new KristException(ErrorCode.InsufficientFunds);
+            var updated = await context.Wallets
+                .Where(q => q.Id == sender.Id)
+                .ExecuteUpdateAsync(setter => setter
+                    .SetProperty(q => q.TotalOut, q => q.TotalOut + amount)
+                );
+
+            if (updated != 1)
+            {
+                throw new KristException(ErrorCode.AddressNotFound);
+            }
+        }
+        else
+        {
+            var debited = await context.Wallets
+                .Where(q => q.Id == sender.Id && q.Balance >= amount)
+                .ExecuteUpdateAsync(setter => setter
+                    .SetProperty(q => q.Balance, q => q.Balance - amount)
+                    .SetProperty(q => q.TotalOut, q => q.TotalOut + amount)
+                );
+
+            if (debited != 1)
+            {
+                throw new KristException(ErrorCode.InsufficientFunds);
+            }
         }
 
-        if (sender.Address != Constants.ServerWallet)
+        var credited = await context.Wallets
+            .Where(q => q.Id == recipient.Id)
+            .ExecuteUpdateAsync(setter => setter
+                .SetProperty(q => q.Balance, q => q.Balance + amount)
+                .SetProperty(q => q.TotalIn, q => q.TotalIn + amount)
+            );
+
+        if (credited != 1)
         {
-            sender.Balance -= amount;
+            throw new KristException(ErrorCode.AddressNotFound);
         }
 
-        recipient.Balance += amount;
+        transaction ??= new TransactionEntity();
+        transaction.From = sender.Address;
+        transaction.To = recipient.Address;
+        transaction.Amount = amount;
+        transaction.TransactionType = transactionType;
+        transaction.Date = DateTime.UtcNow;
 
-        sender.TotalOut += amount;
-        recipient.TotalIn += amount;
-
-        return new TransactionEntity
-        {
-            From = sender.Address,
-            To = recipient.Address,
-            Amount = amount,
-            TransactionType = transactionType,
-            Date = DateTime.UtcNow,
-        };
-    }
-
-    public async Task<TransactionEntity> CommitTransactionAsync(WalletEntity sender, WalletEntity recipient,
-        TransactionEntity transaction)
-    {
-        ArgumentNullException.ThrowIfNull(sender);
-        ArgumentNullException.ThrowIfNull(recipient);
-        ArgumentNullException.ThrowIfNull(transaction);
-
-        context.Wallets.Update(sender);
-        context.Wallets.Update(recipient);
         await context.Transactions.AddAsync(transaction);
 
         await context.SaveChangesAsync();
@@ -90,6 +107,11 @@ public class TransactionService(
         logger.LogInformation("New {Type} transaction {Id}: {From} -> {Amount} KRO -> {To}. Metadata: '{Metadata}'",
             transaction.TransactionType, transaction.Id, transaction.From, transaction.Amount, transaction.To,
             transaction.Metadata);
+
+        if (tx is not null)
+        {
+            await tx.CommitAsync();
+        }
 
         return transaction;
     }

@@ -47,11 +47,14 @@ public class PlayerRepository(
 
     public async Task<AddressCreationResponse> CreatePlayerWalletAsync(Guid uuid, string name)
     {
+        
         var player = await GetOrCreatePlayer(uuid, name);
         player.OwnedWallets ??= [];
         string privateKey;
         WalletAuthenticationResult verification;
 
+        await using var tx = await context.Database.BeginTransactionAsync(); 
+        
         // Ensure the key is unique to an address. This may be ridiculously rare, but never zero.
         do
         {
@@ -65,14 +68,17 @@ public class PlayerRepository(
             throw new InvalidOperationException("Wallet was not created.");
         }
 
-        wallet.Balance = GetInitialBalance();
-        context.Entry(wallet).State = EntityState.Modified;
-
         player.OwnedWallets.Add(wallet.Id);
         context.Entry(player).State = EntityState.Modified;
 
         await context.SaveChangesAsync();
 
+        var serverWallet = await walletRepository.GetWalletFromAddress(Constants.ServerWallet);
+        
+        await transactionService.RunTransactionAsync(serverWallet, wallet, GetInitialBalance(), TransactionType.Mined);
+        
+        await tx.CommitAsync();
+        
         return new AddressCreationResponse
         {
             Address = wallet.Address,
@@ -85,14 +91,15 @@ public class PlayerRepository(
         var sender =  await walletRepository.GetWalletFromAddress(Constants.ServerWallet);
         var recipient = await walletRepository.GetWalletFromAddress(address);
 
-        var transaction = transactionService.InitiateTransaction(sender, recipient, amount, TransactionType.Mined);
-        await transactionService.CommitTransactionAsync(sender, recipient, transaction);
+        var transaction = await transactionService.RunTransactionAsync(sender, recipient, amount, TransactionType.Mined);
 
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
         {
             Transaction = TransactionDto.FromEntity(transaction),
         });
+
+        recipient = await walletRepository.GetWalletFromAddress(address);
 
         return new WalletResponse
         {

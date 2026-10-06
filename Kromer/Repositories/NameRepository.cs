@@ -109,11 +109,6 @@ public partial class NameRepository(
         }
 
         var newNameCost = GetNameCost();
-        if (wallet.Balance < newNameCost)
-        {
-            throw new KristException(ErrorCode.InsufficientFunds);
-        }
-
         name = Validation.SanitizeName(name);
 
         var serverWallet = await walletRepository.GetWalletFromAddress(Constants.ServerWallet);
@@ -130,10 +125,13 @@ public partial class NameRepository(
 
         await context.Names.AddAsync(nameEntity);
 
-        var transaction =
-            transactionService.InitiateTransaction(wallet, serverWallet, newNameCost, TransactionType.NamePurchase);
-        transaction.Name = name;
-        await transactionService.CommitTransactionAsync(wallet, serverWallet, transaction);
+        var transaction = new TransactionEntity()
+        {
+            Name = name,
+        };
+
+        await transactionService.RunTransactionAsync(wallet, serverWallet, newNameCost, TransactionType.NamePurchase,
+            transaction);
 
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
@@ -197,13 +195,13 @@ public partial class NameRepository(
             context.Entry(nameEntity).State = EntityState.Modified;
         }
 
-        var transaction =
-            transactionService.InitiateTransaction(wallet, recipientAddress, 0, TransactionType.NameTransfer);
+        var transaction = new TransactionEntity()
+        {
+            Name = name,
+        };
 
-        transaction.Name = name;
-
-        await transactionService.CommitTransactionAsync(wallet, recipientAddress, transaction);
-
+        await transactionService.RunTransactionAsync(wallet, recipientAddress, 0, TransactionType.NameTransfer,
+            transaction);
 
         // Emit transaction event
         await eventChannel.Writer.WriteAsync(new KristTransactionEvent
@@ -247,8 +245,12 @@ public partial class NameRepository(
         nameEntity.LastUpdated = DateTime.UtcNow;
         context.Entry(nameEntity).State = EntityState.Modified;
 
-        var transaction = transactionService.InitiateTransaction(wallet, wallet, 0, TransactionType.NameARecord);
-        await transactionService.CommitTransactionAsync(wallet, wallet, transaction);
+        var transaction = new TransactionEntity()
+        {
+            Name = name,
+        };
+        
+        await transactionService.RunTransactionAsync(wallet, wallet, 0, TransactionType.NameARecord, transaction);
 
         await eventChannel.Writer.WriteAsync(new KristNameEvent
         {
